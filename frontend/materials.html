@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Study Materials - AI Study Assistant</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/dashboard.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <header class="dashboard-header">
+
+        <div class="logo">
+
+            <img
+                src="images/logo.png"
+                alt="AI Study Assistant Logo"
+            >
+
+            <span>
+                AI Study Assistant
+            </span>
+
+        </div>
+
+
+        <a
+            href="dashboard.html"
+            class="logout-button"
+        >
+            Dashboard
+        </a>
+
+    </header>
+
+
+
+    <main class="materials-page">
+
+
+        <!-- =========================================
+             STUDY MATERIALS CONTAINER
+        ========================================== -->
+
+        <section class="materials-container">
+
+
+            <div class="materials-header">
+
+                <h1>
+                    Study Materials
+                </h1>
+
+                <p>
+                    Upload your study materials and use them
+                    for smarter learning.
+                </p>
+
+            </div>
+
+
+
+            <!-- =========================================
+                 UPLOAD FORM
+            ========================================== -->
+
+            <form
+                id="uploadForm"
+                class="upload-form"
+            >
+
+                <label for="materialFile">
+                    Upload Study Material
+                </label>
+
+
+                <input
+                    type="file"
+                    id="materialFile"
+                    accept=".pdf,.txt"
+                    required
+                >
+
+
+                <button type="submit">
+                    Save Material
+                </button>
+
+            </form>
+
+
+
+            <!-- =========================================
+                 MATERIALS LIST
+            ========================================== -->
+
+            <section class="materials-list">
+
+                <h2>
+                    Your Materials
+                </h2>
+
+
+                <div id="materialsList">
+
+                    <div class="empty-materials">
+
+                        <p>
+                            No study materials uploaded yet.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+        </section>
+
+
+
+        <!-- =========================================
+             AI SUMMARY CONTAINER
+        ========================================== -->
+
+        <section
+            id="materialContent"
+            class="material-content"
+            style="display: none;"
+        >
+
+
+            <h2>
+                AI SUMMARY
+            </h2>
+
+
+            <!-- =====================================
+                 AI SUMMARY CONTENT
+            ====================================== -->
+
+            <div id="aiSummaryContent">
+            </div>
+
+
+
+            <!-- =====================================
+                 DOWNLOAD AI SUMMARY BUTTON
+            ====================================== -->
+
+            <button
+                type="button"
+                id="downloadSummaryButton"
+                style="
+                    display: none;
+                    margin-top: 20px;
+                    padding: 12px 22px;
+                    background-color: darkblue;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 15px;
+                    font-weight: 600;
+                "
+            >
+                Download AI Summary
+            </button>
+
+
+        </section>
+
+
+    </main>
+
+
+
+    <script src="js/materials.js?v=5"></script>
+
+
+</body>
+
+</html>

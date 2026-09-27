@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Quiz - AI Study Assistant</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+
+    <style>
+        .quiz-page {
+            min-height: calc(100vh - 80px);
+            padding: 40px 20px;
+        }
+
+        .quiz-container {
+            width: 90%;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .quiz-header h1 {
+            margin-bottom: 10px;
+        }
+
+        .quiz-settings {
+            background: #add8e6;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        /* Subject + Number of Questions side by side */
+
+        .quiz-settings-row {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+        }
+
+        .quiz-settings-row .form-group {
+            flex: 1;
+        }
+
+        .quiz-form-group {
+            margin-bottom: 20px;
+        }
+
+        .quiz-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .quiz-form-group input,
+        .quiz-form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #888;
+            border-radius: 7px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* Quiz type */
+
+        .quiz-type-options {
+            display: flex;
+            gap: 25px;
+        }
+
+        .quiz-type-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #000;
+            cursor: pointer;
+        }
+
+        .quiz-type-option input {
+            width: auto;
+        }
+
+        /* Buttons */
+
+        .submit-quiz {
+            display: block;
+            width: 180px;
+            margin: 25px auto 0;
+            padding: 12px 20px;
+            background: darkblue;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submit-quiz:hover {
+            opacity: 0.9;
+        }
+
+        .submit-quiz:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Message */
+
+        #quizMessage {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        /* Question */
+
+        .quiz-question {
+            width: 100%;
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-sizing: border-box;
+            color: #000;
+        }
+
+        .quiz-question h3 {
+            margin: 0 0 20px;
+            font-size: 20px;
+            line-height: 1.5;
+        }
+
+        /* Options */
+
+        .quiz-option {
+            display: block;
+            width: 100%;
+            padding: 13px 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: #f7f7f7;
+            color: #000;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .quiz-option:hover {
+            background: #e8f4f8;
+        }
+
+        .quiz-option input {
+            margin-right: 8px;
+        }
+
+        /* Correct answer */
+
+        .quiz-option.correct-answer {
+            background: #d4edda !important;
+            border: 2px solid green !important;
+            color: green !important;
+        }
+
+        /* Wrong selected answer */
+
+        .quiz-option.wrong-answer {
+            background: #f8d7da !important;
+            border: 2px solid red !important;
+            color: red !important;
+        }
+
+        /* Written answer */
+
+        .written-answer {
+            width: 100%;
+            min-height: 50px;
+            padding: 12px;
+            border: 1px solid #aaa;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .written-answer.correct-answer {
+            background: #d4edda !important;
+            border: 2px solid green !important;
+            color: green !important;
+        }
+
+        .written-answer.wrong-answer {
+            background: #f8d7da !important;
+            border: 2px solid red !important;
+            color: red !important;
+        }
+
+        /* Empty quiz */
+
+        .empty-quiz {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            color: #000;
+        }
+
+        /* Result */
+
+        .quiz-result {
+            background: white;
+            padding: 25px;
+            margin-top: 30px;
+            border-radius: 12px;
+            text-align: center;
+            color: #000;
+        }
+
+        .quiz-result h2 {
+            color: darkblue;
+        }
+
+        /* Mobile */
+
+        @media (max-width: 700px) {
+
+            .quiz-settings-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .quiz-type-options {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="dashboard-header">
+
+        <div class="logo">
+
+            <img
+                src="images/logo.png"
+                alt="AI Study Assistant Logo"
+            >
+
+            <span>
+                AI Study Assistant
+            </span>
+
+        </div>
+
+        <a
+            href="dashboard.html"
+            class="logout-button"
+        >
+            Dashboard
+        </a>
+
+    </header>
+
+
+    <main class="quiz-page">
+
+        <section class="quiz-container">
+
+            <div class="quiz-header">
+
+                <h1>
+                    AI Quiz
+                </h1>
+
+                <p>
+                    Test your knowledge with an AI-generated quiz.
+                </p>
+
+            </div>
+
+
+            <!-- QUIZ SETTINGS -->
+
+            <div class="quiz-settings">
+
+                <!-- SUBJECT + NUMBER OF QUESTIONS -->
+
+                <div class="quiz-settings-row">
+
+                    <div class="form-group quiz-form-group">
+
+                        <label for="quizSubject">
+                            Subject
+                        </label>
+
+                        <input
+                            type="text"
+                            id="quizSubject"
+                            placeholder="Enter subject"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group quiz-form-group">
+
+                        <label for="questionCount">
+                            Number of Questions
+                        </label>
+
+                        <select id="questionCount">
+
+                            <option value="5">
+                                5
+                            </option>
+
+                            <option value="10">
+                                10
+                            </option>
+
+                            <option value="15">
+                                15
+                            </option>
+
+                            <option value="20">
+                                20
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- QUIZ TYPE -->
+
+                <div class="form-group quiz-form-group">
+
+                    <label>
+                        Quiz Type
+                    </label>
+
+                    <div class="quiz-type-options">
+
+                        <label class="quiz-type-option">
+
+                            <input
+                                type="radio"
+                                name="quizType"
+                                value="mcq"
+                                checked
+                            >
+
+                            <span>
+                                MCQ
+                            </span>
+
+                        </label>
+
+
+                        <label class="quiz-type-option">
+
+                            <input
+                                type="radio"
+                                name="quizType"
+                                value="written"
+                            >
+
+                            <span>
+                                Written Answer
+                            </span>
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <!-- GENERATE -->
+
+                <button
+                    type="button"
+                    id="generateQuiz"
+                    class="submit-quiz"
+                >
+                    Generate Quiz
+                </button>
+
+            </div>
+
+
+            <div id="quizMessage"></div>
+
+
+            <!-- QUESTIONS -->
+
+            <section id="quizArea">
+
+                <div class="empty-quiz">
+
+                    <p>
+                        Enter a subject and choose a quiz type to begin.
+                    </p>
+
+                </div>
+
+            </section>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/quiz.js?v=7"></script>
+
+</body>
+
+</html>

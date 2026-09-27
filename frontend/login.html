@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Study Assistant</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+
+    <div class="auth-page">
+
+        <div class="auth-info">
+            <h1>AI Study Assistant</h1>
+
+            <p>
+                Your intelligent study companion designed to help you
+                learn, organize, and improve your academic journey.
+            </p>
+
+            <p>
+                Ask questions, study your materials, create quizzes,
+                plan your studies, and track your progress with AI.
+            </p>
+        </div>
+
+        <div class="auth-container">
+
+            <h2>Welcome Back</h2>
+            <p class="form-subtitle">Login to continue your learning</p>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="auth-button">
+                    Login
+                </button>
+
+            </form>
+
+            <p class="switch-form">
+                Don't have an account?
+                <a href="register.html">Register</a>
+            </p>
+
+        </div>
+
+    </div>
+
+    <script src="js/auth.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Study Planner - AI Study Assistant</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+
+    <header class="dashboard-header">
+
+        <div class="logo">
+            <img src="images/logo.png" alt="AI Study Assistant Logo">
+            <span>AI Study Assistant</span>
+        </div>
+
+        <a href="dashboard.html" class="logout-button">
+            Dashboard
+        </a>
+
+    </header>
+
+
+    <main class="planner-page">
+
+        <section class="planner-container">
+
+            <div class="planner-header">
+                <h1>Study Planner</h1>
+
+                <p>
+                    Organize your subjects, tasks, and study schedule.
+                </p>
+            </div>
+
+
+            <form id="plannerForm" class="planner-form">
+
+                <div class="planner-field">
+                    <label for="subject">Subject</label>
+
+                    <input
+                        type="text"
+                        id="subject"
+                        placeholder="Enter subject"
+                        required
+                    >
+                </div>
+
+
+                <div class="planner-field">
+                    <label for="task">Study Task</label>
+
+                    <input
+                        type="text"
+                        id="task"
+                        placeholder="Enter study task"
+                        required
+                    >
+                </div>
+
+
+                <div class="planner-field">
+                    <label for="studyDate">Date</label>
+
+                    <input
+                        type="date"
+                        id="studyDate"
+                        required
+                    >
+                </div>
+
+
+                <div class="planner-field">
+                    <label for="studyTime">Study Time</label>
+
+                    <input
+                        type="time"
+                        id="studyTime"
+                        required
+                    >
+                </div>
+
+
+                <button type="submit" class="planner-button">
+                    Add Study Task
+                </button>
+
+            </form>
+
+
+            <section class="tasks-section">
+
+                <h2>My Study Tasks</h2>
+
+                <div id="taskList">
+
+                    <div class="empty-tasks">
+                        <p>
+                            No study tasks added yet.
+                        </p>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/planner.js"></script>
+
+</body>
+</html>

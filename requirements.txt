@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pydantic[email]
+python-multipart
+google-genai
+python-dotenv
+APScheduler
+resend

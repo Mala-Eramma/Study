@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Profile - AI Study Assistant</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+
+    <header class="dashboard-header">
+
+        <div class="header-left">
+            <h2>AI Study Assistant</h2>
+        </div>
+
+        <div class="dashboard-actions">
+            <a href="dashboard.html" class="profile-button">
+                Dashboard
+            </a>
+
+            <button id="logoutButton" class="profile-button">
+                Logout
+            </button>
+        </div>
+
+    </header>
+
+
+    <main class="profile-page">
+
+        <div class="profile-container">
+
+            <div class="profile-icon">
+                👤
+            </div>
+
+            <h1>My Profile</h1>
+
+            <p class="profile-subtitle">
+                Manage your account information
+            </p>
+
+
+            <div class="profile-details">
+
+                <div class="profile-item">
+                    <span>Full Name</span>
+                    <strong id="profileName">Loading...</strong>
+                </div>
+
+                <div class="profile-item">
+                    <span>Email</span>
+                    <strong id="profileEmail">Loading...</strong>
+                </div>
+
+                <div class="profile-item">
+                    <span>User ID</span>
+                    <strong id="profileUserId">Loading...</strong>
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="logoutProfileButton"
+                class="profile-logout-button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </main>
+
+
+    <script src="js/profile.js"></script>
+
+</body>
+</html>

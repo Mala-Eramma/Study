@@ -1,0 +1,139 @@
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 70px;
+    padding: 40px;
+}
+
+/* Login information */
+
+.auth-info {
+    width: 45%;
+    max-width: 550px;
+}
+
+.auth-info h1 {
+    font-size: 42px;
+    margin-bottom: 25px;
+}
+
+.auth-info p {
+    font-size: 17px;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+/* Register image */
+
+.register-image {
+    width: 45%;
+    max-width: 550px;
+}
+
+.register-image img {
+    width: 100%;
+    height: 430px;
+    object-fit: cover;
+    border-radius: 15px;
+    display: block;
+}
+
+/* Form container */
+
+.auth-container {
+    width: 400px;
+    padding: 35px;
+    background-color: lightblue;
+    border-radius: 15px;
+    color: black;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+.auth-container h2 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.form-subtitle {
+    text-align: center;
+    font-size: 15px;
+    margin-bottom: 25px;
+}
+
+/* Form fields */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 15px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #777;
+    border-radius: 7px;
+    font-size: 15px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: darkblue;
+}
+
+/* Button */
+
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 7px;
+    background-color: darkblue;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.auth-button:hover {
+    opacity: 0.9;
+}
+
+/* Login/Register switch */
+
+.switch-form {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.switch-form a {
+    color: darkblue;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.switch-form a:hover {
+    text-decoration: underline;
+}
+.register-message {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.register-message.success {
+    color: green;
+}
+
+.register-message.error {
+    color: red;
+}

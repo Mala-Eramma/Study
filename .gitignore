@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+
+database/*.db
+
+.venv/
+venv/
+
+uploads/*
+!uploads/.gitkeep
