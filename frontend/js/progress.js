@@ -244,17 +244,34 @@ function getTopicName(topic) {
 function getLearnedSubjects() {
 
     const topics = getUserData(CHAT_TOPICS_KEY);
+    const history = getUserData(CHAT_HISTORY_KEY);
+
+    const allTopics = [];
+
+    // New chat topics
+    topics.forEach(item => {
+        if (item.topic) {
+            allTopics.push(item.topic);
+        }
+    });
+
+    // Older chat history
+    history.forEach(item => {
+        if (item.question) {
+            allTopics.push(item.question);
+        }
+    });
 
     const subjects = {};
 
-    topics.forEach(item => {
+    allTopics.forEach(topic => {
 
-        if (!item.topic) {
+        const subject = detectSubject(topic);
+        const topicName = getTopicName(topic);
+
+        if (!topicName) {
             return;
         }
-
-        const subject = detectSubject(item.topic);
-        const topicName = getTopicName(item.topic);
 
         if (!subjects[subject]) {
             subjects[subject] = [];
@@ -262,8 +279,8 @@ function getLearnedSubjects() {
 
         const alreadyExists =
             subjects[subject].some(
-                topic =>
-                    topic.toLowerCase() ===
+                existingTopic =>
+                    existingTopic.toLowerCase() ===
                     topicName.toLowerCase()
             );
 
@@ -274,7 +291,6 @@ function getLearnedSubjects() {
 
     return subjects;
 }
-
 
 /* ---------------- STUDY SUMMARY ---------------- */
 
