@@ -515,6 +515,34 @@ function htmlAnswer(question) {
     const q = question.toLowerCase();
 
     if (
+        q.includes("root element") ||
+        q.includes("root element in html") ||
+        q.includes("root tag")
+    ) {
+        return `1. The root element in HTML is the <html> element.
+
+2. It is the top-level element of an HTML document.
+
+3. All other HTML elements are placed inside the <html> element.
+
+4. A basic HTML structure looks like this:
+
+<html>
+    <head>
+        <title>My Page</title>
+    </head>
+
+    <body>
+        <h1>Hello</h1>
+    </body>
+</html>
+
+5. The <head> contains information about the webpage, while the <body> contains the visible webpage content.
+
+6. Therefore, <html> is called the root element of an HTML document.`;
+    }
+
+    if (
         q.includes("anchor") ||
         q.includes("link") ||
         q.includes("href")
