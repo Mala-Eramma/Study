@@ -1,15 +1,14 @@
-const API_URL = "http://localhost:8000";
-
 const chatHistory =
     document.getElementById("chatHistory");
 
 
-// =========================================
-// GET LOGGED-IN USER
-// =========================================
+/* =========================================
+   GET LOGGED-IN USER
+========================================= */
 
 const userData =
     localStorage.getItem("user");
+
 
 if (!userData) {
 
@@ -21,190 +20,268 @@ if (!userData) {
     const user =
         JSON.parse(userData);
 
+
     const userId =
-        user.user.id;
+        user.user_id ||
+        user.id ||
+        (user.user && (
+            user.user.id ||
+            user.user.user_id
+        ));
 
 
-    // =========================================
-    // LOAD CHAT HISTORY
-    // =========================================
+    /* =========================================
+       LOCAL HISTORY KEY
+    ========================================= */
 
-    async function loadChatHistory() {
+    const HISTORY_KEY =
+        "study_assistant_chat_history";
+
+
+    /* =========================================
+       GET HISTORY
+    ========================================= */
+
+    function getChatHistory() {
+
+        let history = [];
 
         try {
 
-            const response =
-                await fetch(
-                    `${API_URL}/chat/history?user_id=${userId}`
+            history =
+                JSON.parse(
+                    localStorage.getItem(
+                        HISTORY_KEY
+                    ) || "[]"
                 );
 
-
-            if (!response.ok) {
-
-                throw new Error(
-                    "Unable to load chat history."
-                );
-
-            }
-
-
-            const history =
-                await response.json();
-
-
-            console.log(
-                "Chat history:",
-                history
-            );
-
-
-            if (!Array.isArray(history) ||
-                history.length === 0) {
-
-                chatHistory.innerHTML =
-                    "<p>No chat history available yet.";
-
-                return;
-
-            }
-
-
-            chatHistory.innerHTML =
-                "";
-
-
-            history.forEach(
-                function (item) {
-
-                    const card =
-                        document.createElement(
-                            "div"
-                        );
-
-                    card.className =
-                        "dashboard-card";
-
-
-                    const question =
-                        document.createElement(
-                            "h2"
-                        );
-
-                    question.textContent =
-                        "Question: " +
-                        item.question;
-
-
-                    const answer =
-                        document.createElement(
-                            "p"
-                        );
-
-                    answer.textContent =
-                        "AI Answer: " +
-                        item.answer;
-
-
-                    const date =
-                        document.createElement(
-                            "small"
-                        );
-
-                    if (item.created_at) {
-
-                        date.textContent =
-                            "Date: " +
-                            new Date(
-                                item.created_at
-                            ).toLocaleString();
-
-                    } else {
-
-                        date.textContent =
-                            "Date: Not available";
-
-                    }
-
-
-                    // =========================================
-                    // DELETE BUTTON
-                    // =========================================
-
-                    const deleteButton =
-                        document.createElement(
-                            "button"
-                        );
-
-                    deleteButton.textContent =
-                        "Delete";
-
-                    deleteButton.className =
-                        "delete-history-button";
-
-
-                    deleteButton.addEventListener(
-                        "click",
-                        function () {
-
-                            showDeleteConfirmation(
-                                card,
-                                item.id,
-                                userId
-                            );
-
-                        }
-                    );
-
-
-                    card.appendChild(
-                        question
-                    );
-
-                    card.appendChild(
-                        answer
-                    );
-
-                    card.appendChild(
-                        date
-                    );
-
-                    card.appendChild(
-                        deleteButton
-                    );
-
-
-                    chatHistory.appendChild(
-                        card
-                    );
-
-                }
-            );
-
-        }
-
-        catch (error) {
+        } catch (error) {
 
             console.error(
-                "Chat history error:",
+                "History read error:",
                 error
             );
 
-            chatHistory.innerHTML =
-                "<p>Unable to load chat history.</p>";
-
+            history = [];
         }
 
+
+        if (!Array.isArray(history)) {
+
+            history = [];
+        }
+
+
+        /*
+         * Show only the current user's
+         * conversations.
+         */
+
+        return history.filter(
+            function (item) {
+
+                return String(
+                    item.user_id
+                ) === String(
+                    userId
+                );
+            }
+        );
     }
 
 
-    // =========================================
-    // SHOW DELETE CONFIRMATION
-    // =========================================
+    /* =========================================
+       LOAD CHAT HISTORY
+    ========================================= */
+
+    function loadChatHistory() {
+
+        const history =
+            getChatHistory();
+
+
+        if (
+            !Array.isArray(history) ||
+            history.length === 0
+        ) {
+
+            chatHistory.innerHTML =
+                "<p>No chat history available yet.</p>";
+
+            return;
+        }
+
+
+        chatHistory.innerHTML =
+            "";
+
+
+        /*
+         * Newest conversation first
+         */
+
+        history.sort(
+            function (a, b) {
+
+                return (
+                    Number(
+                        b.created_at
+                    ) -
+                    Number(
+                        a.created_at
+                    )
+                );
+            }
+        );
+
+
+        history.forEach(
+            function (item) {
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.className =
+                    "dashboard-card";
+
+
+                /* =================================
+                   QUESTION
+                ================================= */
+
+                const question =
+                    document.createElement(
+                        "h2"
+                    );
+
+
+                question.textContent =
+                    "Question: " +
+                    (
+                        item.question ||
+                        ""
+                    );
+
+
+                /* =================================
+                   ANSWER
+                ================================= */
+
+                const answer =
+                    document.createElement(
+                        "p"
+                    );
+
+
+                answer.textContent =
+                    "AI Answer: " +
+                    (
+                        item.answer ||
+                        ""
+                    );
+
+
+                /* =================================
+                   DATE
+                ================================= */
+
+                const date =
+                    document.createElement(
+                        "small"
+                    );
+
+
+                if (
+                    item.created_at
+                ) {
+
+                    date.textContent =
+                        "Date: " +
+                        new Date(
+                            Number(
+                                item.created_at
+                            )
+                        ).toLocaleString();
+
+                } else {
+
+                    date.textContent =
+                        "Date: Not available";
+                }
+
+
+                /* =================================
+                   DELETE BUTTON
+                ================================= */
+
+                const deleteButton =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                deleteButton.textContent =
+                    "Delete";
+
+
+                deleteButton.className =
+                    "delete-history-button";
+
+
+                deleteButton.addEventListener(
+                    "click",
+                    function () {
+
+                        showDeleteConfirmation(
+                            card,
+                            item.id
+                        );
+                    }
+                );
+
+
+                /* =================================
+                   ADD TO CARD
+                ================================= */
+
+                card.appendChild(
+                    question
+                );
+
+
+                card.appendChild(
+                    answer
+                );
+
+
+                card.appendChild(
+                    date
+                );
+
+
+                card.appendChild(
+                    deleteButton
+                );
+
+
+                chatHistory.appendChild(
+                    card
+                );
+            }
+        );
+    }
+
+
+    /* =========================================
+       DELETE CONFIRMATION
+    ========================================= */
 
     function showDeleteConfirmation(
         card,
-        historyId,
-        userId
+        historyId
     ) {
 
         const oldConfirmation =
@@ -212,10 +289,10 @@ if (!userData) {
                 ".delete-confirmation"
             );
 
+
         if (oldConfirmation) {
 
             oldConfirmation.remove();
-
         }
 
 
@@ -236,31 +313,38 @@ if (!userData) {
         confirmation.style.marginTop =
             "15px";
 
+
         confirmation.style.marginBottom =
             "10px";
+
 
         confirmation.style.padding =
             "12px";
 
+
         confirmation.style.backgroundColor =
             "#eaf4ff";
+
 
         confirmation.style.color =
             "black";
 
+
         confirmation.style.borderRadius =
             "8px";
 
+
         confirmation.style.fontSize =
             "15px";
+
 
         confirmation.style.fontWeight =
             "600";
 
 
-        // =========================================
-        // YES BUTTON
-        // =========================================
+        /* =================================
+           YES BUTTON
+        ================================= */
 
         const yesButton =
             document.createElement(
@@ -275,20 +359,26 @@ if (!userData) {
         yesButton.style.marginRight =
             "10px";
 
+
         yesButton.style.padding =
             "8px 15px";
+
 
         yesButton.style.backgroundColor =
             "darkblue";
 
+
         yesButton.style.color =
             "white";
+
 
         yesButton.style.border =
             "none";
 
+
         yesButton.style.borderRadius =
             "6px";
+
 
         yesButton.style.cursor =
             "pointer";
@@ -300,17 +390,15 @@ if (!userData) {
 
                 deleteHistory(
                     card,
-                    historyId,
-                    userId
+                    historyId
                 );
-
             }
         );
 
 
-        // =========================================
-        // CANCEL BUTTON
-        // =========================================
+        /* =================================
+           CANCEL BUTTON
+        ================================= */
 
         const cancelButton =
             document.createElement(
@@ -325,17 +413,22 @@ if (!userData) {
         cancelButton.style.padding =
             "8px 15px";
 
+
         cancelButton.style.backgroundColor =
             "gray";
+
 
         cancelButton.style.color =
             "white";
 
+
         cancelButton.style.border =
             "none";
 
+
         cancelButton.style.borderRadius =
             "6px";
+
 
         cancelButton.style.cursor =
             "pointer";
@@ -346,7 +439,6 @@ if (!userData) {
             function () {
 
                 confirmation.remove();
-
             }
         );
 
@@ -371,51 +463,51 @@ if (!userData) {
         card.appendChild(
             confirmation
         );
-
     }
 
 
-    // =========================================
-    // DELETE CHAT HISTORY
-    // =========================================
+    /* =========================================
+       DELETE CHAT HISTORY
+    ========================================= */
 
-    async function deleteHistory(
+    function deleteHistory(
         card,
-        historyId,
-        userId
+        historyId
     ) {
 
         try {
 
-            const response =
-                await fetch(
-                    `${API_URL}/chat/history/${historyId}?user_id=${userId}`,
-                    {
-                        method: "DELETE"
+            let history =
+                JSON.parse(
+                    localStorage.getItem(
+                        HISTORY_KEY
+                    ) || "[]"
+                );
+
+
+            history =
+                history.filter(
+                    function (item) {
+
+                        return String(
+                            item.id
+                        ) !== String(
+                            historyId
+                        );
                     }
                 );
 
 
-            const data =
-                await response.json();
-
-
-            if (!response.ok) {
-
-                showMessage(
-                    card,
-                    "Unable to delete chat history.",
-                    "error"
-                );
-
-                return;
-
-            }
+            localStorage.setItem(
+                HISTORY_KEY,
+                JSON.stringify(
+                    history
+                )
+            );
 
 
             showMessage(
                 card,
-                data.message ||
                 "Chat deleted successfully.",
                 "success"
             );
@@ -427,12 +519,11 @@ if (!userData) {
                     loadChatHistory();
 
                 },
-                800
+                500
             );
 
-        }
 
-        catch (error) {
+        } catch (error) {
 
             console.error(
                 "Delete history error:",
@@ -442,18 +533,16 @@ if (!userData) {
 
             showMessage(
                 card,
-                "Unable to connect to the server.",
+                "Unable to delete chat history.",
                 "error"
             );
-
         }
-
     }
 
 
-    // =========================================
-    // SHOW PAGE MESSAGE
-    // =========================================
+    /* =========================================
+       SHOW MESSAGE
+    ========================================= */
 
     function showMessage(
         card,
@@ -466,10 +555,10 @@ if (!userData) {
                 ".history-message"
             );
 
+
         if (oldMessage) {
 
             oldMessage.remove();
-
         }
 
 
@@ -490,20 +579,27 @@ if (!userData) {
         message.style.marginTop =
             "15px";
 
+
         message.style.padding =
             "10px";
 
+
         message.style.borderRadius =
             "8px";
+
 
         message.style.fontWeight =
             "600";
 
 
-        if (messageType === "success") {
+        if (
+            messageType ===
+            "success"
+        ) {
 
             message.style.backgroundColor =
                 "#d4edda";
+
 
             message.style.color =
                 "#155724";
@@ -513,23 +609,21 @@ if (!userData) {
             message.style.backgroundColor =
                 "#f8d7da";
 
+
             message.style.color =
                 "#721c24";
-
         }
 
 
         card.appendChild(
             message
         );
-
     }
 
 
-    // =========================================
-    // START
-    // =========================================
+    /* =========================================
+       START
+    ========================================= */
 
     loadChatHistory();
-
 }
