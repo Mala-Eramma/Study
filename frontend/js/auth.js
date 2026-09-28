@@ -1,187 +1,296 @@
-const loginForm = document.getElementById("loginForm");
-const registerForm = document.getElementById("registerForm");
+/* =========================================================
+   AI STUDY ASSISTANT
+   FRONTEND-ONLY AUTHENTICATION
+========================================================= */
 
-const API_URL = "http://127.0.0.1:8000";
+const registerForm =
+    document.getElementById("registerForm");
+
+const loginForm =
+    document.getElementById("loginForm");
 
 
 /* =========================================================
-   Login
-   ========================================================= */
+   REGISTER
+========================================================= */
 
-if (loginForm) {
+if (registerForm) {
 
-    loginForm.addEventListener("submit", async function (event) {
+    registerForm.addEventListener(
+        "submit",
+        function (event) {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        const email =
-            document.getElementById("email").value.trim();
+            const fullName =
+                document.getElementById("fullName").value.trim();
 
-        const password =
-            document.getElementById("password").value;
+            const email =
+                document.getElementById("email").value.trim().toLowerCase();
+
+            const password =
+                document.getElementById("password").value;
+
+            const confirmPassword =
+                document.getElementById("confirmPassword").value;
+
+            const message =
+                document.getElementById("message");
 
 
-        if (!email || !password) {
-            alert("Please enter email and password.");
-            return;
-        }
+            if (!fullName || !email || !password || !confirmPassword) {
+
+                showMessage(
+                    message,
+                    "Please fill in all fields.",
+                    "error"
+                );
+
+                return;
+            }
 
 
-        try {
+            if (password !== confirmPassword) {
 
-            const response = await fetch(
-                `${API_URL}/auth/login`,
-                {
-                    method: "POST",
+                showMessage(
+                    message,
+                    "Passwords do not match.",
+                    "error"
+                );
 
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                return;
+            }
 
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                }
+
+            if (password.length < 6) {
+
+                showMessage(
+                    message,
+                    "Password must contain at least 6 characters.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const users =
+                JSON.parse(
+                    localStorage.getItem("studyUsers") || "[]"
+                );
+
+
+            const existingUser =
+                users.find(
+                    function (user) {
+                        return user.email === email;
+                    }
+                );
+
+
+            if (existingUser) {
+
+                showMessage(
+                    message,
+                    "An account with this email already exists.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const newUser = {
+
+                id:
+                    Date.now(),
+
+                full_name:
+                    fullName,
+
+                email:
+                    email,
+
+                password:
+                    password
+            };
+
+
+            users.push(newUser);
+
+
+            localStorage.setItem(
+                "studyUsers",
+                JSON.stringify(users)
             );
 
 
-            const data = await response.json();
+            localStorage.setItem(
+                "user",
+                JSON.stringify({
+                    id: newUser.id,
+                    full_name: newUser.full_name,
+                    email: newUser.email
+                })
+            );
 
 
-            if (!response.ok) {
-                alert(data.detail || "Login failed.");
+            showMessage(
+                message,
+                "Registration successful.",
+                "success"
+            );
+
+
+            registerForm.reset();
+
+
+            setTimeout(
+                function () {
+
+                    window.location.href =
+                        "login.html";
+
+                },
+                1200
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+if (loginForm) {
+
+    loginForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            const email =
+                document.getElementById("email").value.trim().toLowerCase();
+
+            const password =
+                document.getElementById("password").value;
+
+            const message =
+                document.getElementById("message");
+
+
+            const users =
+                JSON.parse(
+                    localStorage.getItem("studyUsers") || "[]"
+                );
+
+
+            const user =
+                users.find(
+                    function (item) {
+
+                        return (
+                            item.email === email
+                            &&
+                            item.password === password
+                        );
+
+                    }
+                );
+
+
+            if (!user) {
+
+                showMessage(
+                    message,
+                    "Invalid email or password.",
+                    "error"
+                );
+
                 return;
             }
 
 
             localStorage.setItem(
                 "user",
-                JSON.stringify(data)
+                JSON.stringify({
+                    id: user.id,
+                    full_name: user.full_name,
+                    email: user.email
+                })
             );
 
 
-            window.location.href = "dashboard.html";
-
-        } catch (error) {
-
-            alert(
-                "Unable to connect to the server."
+            localStorage.setItem(
+                "user_id",
+                String(user.id)
             );
 
-            console.error(error);
+            localStorage.setItem(
+                "user_name",
+                user.full_name
+            );
+
+            localStorage.setItem(
+                "user_email",
+                user.email
+            );
+
+
+            showMessage(
+                message,
+                "Login successful.",
+                "success"
+            );
+
+
+            setTimeout(
+                function () {
+
+                    window.location.href =
+                        "dashboard.html";
+
+                },
+                700
+            );
         }
-
-    });
-
+    );
 }
 
+
 /* =========================================================
-   Register
-   ========================================================= */
+   MESSAGE
+========================================================= */
 
-if (registerForm) {
+function showMessage(
+    element,
+    text,
+    type
+) {
 
-    registerForm.addEventListener("submit", async function (event) {
-
-        event.preventDefault();
-
-        const name =
-            document.getElementById("name").value.trim();
-
-        const email =
-            document.getElementById("email").value.trim();
-
-        const password =
-            document.getElementById("password").value;
-
-        const confirmPassword =
-            document.getElementById("confirmPassword").value;
-
-        const registerMessage =
-            document.getElementById("registerMessage");
+    if (!element) {
+        return;
+    }
 
 
-        registerMessage.textContent = "";
-        registerMessage.className =
-            "register-message";
+    element.textContent =
+        text;
 
 
-        if (!name || !email || !password || !confirmPassword) {
-
-            registerMessage.textContent =
-                "Please fill in all fields.";
-
-            registerMessage.classList.add("error");
-
-            return;
-        }
+    element.style.display =
+        "block";
 
 
-        if (password !== confirmPassword) {
+    if (type === "success") {
 
-            registerMessage.textContent =
-                "Passwords do not match.";
+        element.style.color =
+            "green";
 
-            registerMessage.classList.add("error");
+    } else {
 
-            return;
-        }
-
-
-        try {
-
-            const response = await fetch(
-                `${API_URL}/auth/register`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        name: name,
-                        email: email,
-                        password: password
-                    })
-                }
-            );
-
-
-            const data = await response.json();
-
-
-            if (!response.ok) {
-
-                registerMessage.textContent =
-                    data.detail || "Registration failed.";
-
-                registerMessage.classList.add("error");
-
-                return;
-            }
-
-
-            registerMessage.textContent =
-                "Registration successful. You can now login.";
-
-            registerMessage.classList.add("success");
-
-
-            registerForm.reset();
-
-
-        } catch (error) {
-
-            registerMessage.textContent =
-                "Unable to connect to the server.";
-
-            registerMessage.classList.add("error");
-
-            console.error(error);
-        }
-
-    });
-
+        element.style.color =
+            "red";
+    }
 }
