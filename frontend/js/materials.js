@@ -1,1135 +1,1214 @@
-const DB_NAME = "AIStudyAssistantMaterials";
-const DB_VERSION = 1;
-const STORE_NAME = "materials";
-const MATERIALS_KEY = "study_assistant_materials";
+/* =========================================================
+   AI STUDY ASSISTANT
+   MATERIALS - GITHUB PAGES VERSION
+========================================================= */
 
-let db = null;
 
-const materialInput =
-    document.getElementById("materialInput");
+const uploadForm =
+    document.getElementById("uploadForm");
 
-const saveMaterialButton =
-    document.getElementById("saveMaterialButton");
+
+const materialFile =
+    document.getElementById("materialFile");
+
 
 const materialsList =
     document.getElementById("materialsList");
 
+
 const materialContent =
     document.getElementById("materialContent");
+
 
 const aiSummaryContent =
     document.getElementById("aiSummaryContent");
 
+
 const downloadSummaryButton =
-    document.getElementById("downloadSummaryButton");
+    document.getElementById(
+        "downloadSummaryButton"
+    );
 
 
-/* =========================
-   OPEN INDEXED DB
-========================= */
+/* =========================================================
+   USER
+========================================================= */
+
+const userData =
+    localStorage.getItem("user");
+
+
+if (!userData) {
+
+    window.location.href =
+        "login.html";
+}
+
+
+const user =
+    JSON.parse(userData);
+
+
+const userId =
+    user.user_id ||
+    user.id ||
+    user.email;
+
+
+/* =========================================================
+   DATABASE
+========================================================= */
+
+const DB_NAME =
+    "AIStudyAssistantMaterials";
+
+
+const DB_VERSION =
+    1;
+
+
+const STORE_NAME =
+    "materials";
+
+
+let database = null;
+
+
+/* =========================================================
+   OPEN DATABASE
+========================================================= */
 
 function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(
-            DB_NAME,
-            DB_VERSION
-        );
 
-        request.onupgradeneeded = function (event) {
-            const database = event.target.result;
+    return new Promise(
+        function (resolve, reject) {
 
-            if (!database.objectStoreNames.contains(STORE_NAME)) {
-                database.createObjectStore(
-                    STORE_NAME,
-                    {
-                        keyPath: "id"
-                    }
+            const request =
+                indexedDB.open(
+                    DB_NAME,
+                    DB_VERSION
                 );
-            }
-        };
 
-        request.onsuccess = function () {
-            db = request.result;
-            resolve(db);
-        };
 
-        request.onerror = function () {
-            reject(request.error);
-        };
-    });
-}
+            request.onupgradeneeded =
+                function (event) {
 
+                    const db =
+                        event.target.result;
 
-/* =========================
-   SAVE MATERIAL
-========================= */
 
-function saveMaterial(file) {
-    return new Promise((resolve, reject) => {
-        const transaction =
-            db.transaction(
-                STORE_NAME,
-                "readwrite"
-            );
-
-        const store =
-            transaction.objectStore(
-                STORE_NAME
-            );
-
-        const material = {
-            id:
-                Date.now().toString() +
-                "_" +
-                Math.random()
-                    .toString(36)
-                    .substring(2),
-
-            filename: file.name,
-
-            type:
-                file.type ||
-                "application/octet-stream",
-
-            size: file.size,
-
-            file: file,
-
-            createdAt:
-                new Date().toISOString()
-        };
-
-        const request =
-            store.put(material);
-
-        request.onsuccess = function () {
-            updateProgressMaterials();
-            resolve(material);
-        };
-
-        request.onerror = function () {
-            reject(request.error);
-        };
-    });
-}
-
-
-/* =========================
-   GET ALL MATERIALS
-========================= */
-
-function getAllMaterials() {
-    return new Promise((resolve, reject) => {
-        const transaction =
-            db.transaction(
-                STORE_NAME,
-                "readonly"
-            );
-
-        const store =
-            transaction.objectStore(
-                STORE_NAME
-            );
-
-        const request =
-            store.getAll();
-
-        request.onsuccess = function () {
-            resolve(
-                request.result || []
-            );
-        };
-
-        request.onerror = function () {
-            reject(request.error);
-        };
-    });
-}
-
-
-/* =========================
-   DELETE MATERIAL
-========================= */
-
-function deleteMaterial(id) {
-    return new Promise((resolve, reject) => {
-        const transaction =
-            db.transaction(
-                STORE_NAME,
-                "readwrite"
-            );
-
-        const store =
-            transaction.objectStore(
-                STORE_NAME
-            );
-
-        const request =
-            store.delete(id);
-
-        request.onsuccess = function () {
-            updateProgressMaterials();
-            resolve();
-        };
-
-        request.onerror = function () {
-            reject(request.error);
-        };
-    });
-}
-
-
-/* =========================
-   FORMAT FILE SIZE
-========================= */
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) {
-        return bytes + " B";
-    }
-
-    if (bytes < 1024 * 1024) {
-        return (
-            (bytes / 1024).toFixed(1) +
-            " KB"
-        );
-    }
-
-    return (
-        (bytes / (1024 * 1024)).toFixed(1) +
-        " MB"
-    );
-}
-
-
-/* =========================
-   ESCAPE HTML
-========================= */
-
-function escapeHtml(value) {
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-
-/* =========================
-   LOAD PDF.JS
-========================= */
-
-let pdfjsPromise = null;
-
-function loadPDFJS() {
-    if (pdfjsPromise) {
-        return pdfjsPromise;
-    }
-
-    pdfjsPromise = import(
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.min.mjs"
-    );
-
-    return pdfjsPromise;
-}
-
-
-/* =========================
-   EXTRACT PDF TEXT
-========================= */
-
-async function extractPDFText(file) {
-    const pdfjsLib =
-        await loadPDFJS();
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.worker.min.mjs";
-
-    const arrayBuffer =
-        await file.arrayBuffer();
-
-    const pdf =
-        await pdfjsLib.getDocument({
-            data: arrayBuffer
-        }).promise;
-
-    let completeText = "";
-
-    for (
-        let pageNumber = 1;
-        pageNumber <= pdf.numPages;
-        pageNumber++
-    ) {
-        const page =
-            await pdf.getPage(
-                pageNumber
-            );
-
-        const textContent =
-            await page.getTextContent();
-
-        const pageText =
-            textContent.items
-                .map(item => item.str)
-                .join(" ");
-
-        completeText +=
-            pageText + "\n\n";
-    }
-
-    return completeText
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-
-/* =========================
-   CLEAN TEXT
-========================= */
-
-function cleanText(text) {
-    return text
-        .replace(/\s+/g, " ")
-        .replace(
-            /(\w)-\s+(\w)/g,
-            "$1$2"
-        )
-        .trim();
-}
-
-
-/* =========================
-   SPLIT INTO SENTENCES
-========================= */
-
-function splitSentences(text) {
-    return text
-        .match(
-            /[^.!?]+[.!?]+/g
-        ) || [];
-}
-
-
-/* =========================
-   EXTRACTIVE SUMMARY
-========================= */
-
-function createSummary(text) {
-    text = cleanText(text);
-
-    if (!text) {
-        return "";
-    }
-
-    const sentences =
-        splitSentences(text)
-            .map(sentence =>
-                sentence.trim()
-            )
-            .filter(
-                sentence =>
-                    sentence.length > 35
-            );
-
-    if (sentences.length === 0) {
-        return text.substring(
-            0,
-            1500
-        );
-    }
-
-    const stopWords = new Set([
-        "the",
-        "and",
-        "that",
-        "this",
-        "with",
-        "from",
-        "have",
-        "has",
-        "were",
-        "was",
-        "are",
-        "for",
-        "you",
-        "your",
-        "they",
-        "their",
-        "which",
-        "will",
-        "into",
-        "about",
-        "there",
-        "these",
-        "those",
-        "than",
-        "then",
-        "also",
-        "when",
-        "where",
-        "what",
-        "how",
-        "why",
-        "can",
-        "could",
-        "would",
-        "should",
-        "been",
-        "being",
-        "not",
-        "but",
-        "its",
-        "it",
-        "is",
-        "in",
-        "on",
-        "of",
-        "to",
-        "a",
-        "an",
-        "as",
-        "by",
-        "or",
-        "be",
-        "we",
-        "our",
-        "at"
-    ]);
-
-    const words =
-        text
-            .toLowerCase()
-            .replace(
-                /[^a-z0-9\s]/g,
-                " "
-            )
-            .split(/\s+/)
-            .filter(
-                word =>
-                    word.length > 2 &&
-                    !stopWords.has(word)
-            );
-
-    const frequency = {};
-
-    words.forEach(word => {
-        frequency[word] =
-            (frequency[word] || 0) + 1;
-    });
-
-    const scoredSentences =
-        sentences.map(
-            (sentence, index) => {
-
-                const sentenceWords =
-                    sentence
-                        .toLowerCase()
-                        .replace(
-                            /[^a-z0-9\s]/g,
-                            " "
+                    if (
+                        !db.objectStoreNames.contains(
+                            STORE_NAME
                         )
-                        .split(/\s+/);
+                    ) {
 
-                let score = 0;
+                        const store =
+                            db.createObjectStore(
+                                STORE_NAME,
+                                {
+                                    keyPath: "id"
+                                }
+                            );
 
-                sentenceWords.forEach(
-                    word => {
-                        if (
-                            frequency[word]
-                        ) {
-                            score +=
-                                frequency[word];
-                        }
+
+                        store.createIndex(
+                            "user_id",
+                            "user_id",
+                            {
+                                unique: false
+                            }
+                        );
                     }
-                );
-
-                if (
-                    index <
-                    Math.min(
-                        5,
-                        sentences.length
-                    )
-                ) {
-                    score += 2;
-                }
-
-                if (
-                    sentence.length > 250
-                ) {
-                    score -= 1;
-                }
-
-                return {
-                    sentence,
-                    score,
-                    index
                 };
-            }
-        );
-
-    scoredSentences.sort(
-        (a, b) =>
-            b.score - a.score
-    );
-
-    const summaryCount =
-        Math.min(
-            8,
-            scoredSentences.length
-        );
-
-    const selected =
-        scoredSentences
-            .slice(
-                0,
-                summaryCount
-            )
-            .sort(
-                (a, b) =>
-                    a.index - b.index
-            );
-
-    return selected
-        .map(item =>
-            item.sentence
-        )
-        .join(" ");
-}
 
 
-/* =========================
-   DISPLAY SUMMARY
-========================= */
+            request.onsuccess =
+                function (event) {
 
-async function showAISummary(
-    material,
-    summaryButton
-) {
-    if (!materialContent) {
-        return;
-    }
+                    database =
+                        event.target.result;
 
-    materialContent.style.display =
-        "block";
+                    resolve(database);
+                };
 
-    summaryButton.disabled =
-        true;
 
-    summaryButton.textContent =
-        "Creating Summary...";
-
-    aiSummaryContent.innerHTML = `
-        <p>
-            Reading the PDF content...
-        </p>
-    `;
-
-    try {
-        if (
-            !material.file ||
-            !material.type.includes("pdf")
-        ) {
-            aiSummaryContent.innerHTML = `
-                <h3>${escapeHtml(
-                    material.filename
-                )}</h3>
-
-                <p>
-                    AI summary is currently
-                    available for PDF files.
-                </p>
-            `;
-
-            summaryButton.disabled =
-                false;
-
-            summaryButton.textContent =
-                "AI Summary";
-
-            return;
-        }
-
-        const extractedText =
-            await extractPDFText(
-                material.file
-            );
-
-        if (!extractedText) {
-            aiSummaryContent.innerHTML = `
-                <h3>${escapeHtml(
-                    material.filename
-                )}</h3>
-
-                <p>
-                    No readable text was found
-                    in this PDF.
-                </p>
-
-                <p>
-                    If this is a scanned PDF,
-                    it requires OCR to read
-                    the text.
-                </p>
-            `;
-
-            summaryButton.disabled =
-                false;
-
-            summaryButton.textContent =
-                "AI Summary";
-
-            return;
-        }
-
-        const summary =
-            createSummary(
-                extractedText
-            );
-
-        if (!summary) {
-            throw new Error(
-                "Unable to create summary."
-            );
-        }
-
-        aiSummaryContent.innerHTML = `
-            <h3>
-                ${escapeHtml(
-                    material.filename
-                )}
-            </h3>
-
-            <h4>
-                AI Summary
-            </h4>
-
-            <p>
-                ${escapeHtml(
-                    summary
-                )}
-            </p>
-
-            <hr>
-
-            <p>
-                <strong>
-                    Extracted content:
-                </strong>
-                ${extractedText.length.toLocaleString()}
-                characters
-            </p>
-        `;
-
-        summaryButton.textContent =
-            "Hide Summary";
-
-        summaryButton.disabled =
-            false;
-
-        summaryButton.dataset.summaryShown =
-            "true";
-
-        if (downloadSummaryButton) {
-            downloadSummaryButton.style.display =
-                "inline-block";
-
-            downloadSummaryButton.onclick =
+            request.onerror =
                 function () {
-                    downloadSummary(
-                        material.filename,
-                        summary
+
+                    reject(
+                        request.error
                     );
                 };
         }
+    );
+}
 
-    } catch (error) {
-        console.error(
-            "PDF summary error:",
-            error
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(
+    message,
+    type = "success"
+) {
+
+    let messageElement =
+        document.getElementById(
+            "materialMessage"
         );
 
-        aiSummaryContent.innerHTML = `
-            <h3>
-                ${escapeHtml(
-                    material.filename
-                )}
-            </h3>
 
-            <p>
-                Unable to read this PDF.
-            </p>
+    if (!messageElement) {
 
-            <p>
-                Please refresh the page
-                and try again.
-            </p>
-        `;
+        messageElement =
+            document.createElement(
+                "div"
+            );
 
-        summaryButton.disabled =
-            false;
 
-        summaryButton.textContent =
-            "AI Summary";
+        messageElement.id =
+            "materialMessage";
+
+
+        if (uploadForm) {
+
+            uploadForm.insertAdjacentElement(
+                "afterend",
+                messageElement
+            );
+        }
+    }
+
+
+    messageElement.textContent =
+        message;
+
+
+    messageElement.style.marginTop =
+        "15px";
+
+
+    messageElement.style.padding =
+        "10px";
+
+
+    messageElement.style.textAlign =
+        "center";
+
+
+    messageElement.style.fontWeight =
+        "600";
+
+
+    messageElement.style.color =
+        type === "error"
+            ? "red"
+            : "green";
+}
+
+
+/* =========================================================
+   SAVE MATERIAL METADATA
+   Used by Progress page
+========================================================= */
+
+function saveMaterialMetadata(
+    material
+) {
+
+    let materials = [];
+
+
+    try {
+
+        materials =
+            JSON.parse(
+                localStorage.getItem(
+                    "study_assistant_materials"
+                ) || "[]"
+            );
+
+
+        if (!Array.isArray(materials)) {
+
+            materials = [];
+        }
+
+    } catch (error) {
+
+        materials = [];
+    }
+
+
+    const alreadyExists =
+        materials.some(
+            item =>
+                String(item.id) ===
+                String(material.id)
+        );
+
+
+    if (!alreadyExists) {
+
+        materials.push({
+
+            id:
+                material.id,
+
+            user_id:
+                material.user_id,
+
+            filename:
+                material.filename,
+
+            size:
+                material.size,
+
+            type:
+                material.type,
+
+            saved_at:
+                material.saved_at
+        });
+
+
+        localStorage.setItem(
+            "study_assistant_materials",
+            JSON.stringify(
+                materials
+            )
+        );
     }
 }
 
 
-/* =========================
-   HIDE SUMMARY
-========================= */
+/* =========================================================
+   REMOVE MATERIAL METADATA
+========================================================= */
 
-function hideSummary(
-    summaryButton
+function removeMaterialMetadata(
+    materialId
 ) {
-    if (materialContent) {
-        materialContent.style.display =
-            "none";
+
+    let materials = [];
+
+
+    try {
+
+        materials =
+            JSON.parse(
+                localStorage.getItem(
+                    "study_assistant_materials"
+                ) || "[]"
+            );
+
+    } catch (error) {
+
+        materials = [];
     }
+
+
+    materials =
+        materials.filter(
+            item =>
+                String(item.id) !==
+                String(materialId)
+        );
+
+
+    localStorage.setItem(
+        "study_assistant_materials",
+        JSON.stringify(
+            materials
+        )
+    );
+}
+
+
+/* =========================================================
+   SAVE FILE TO INDEXEDDB
+========================================================= */
+
+function saveMaterialToDatabase(
+    material
+) {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const transaction =
+                database.transaction(
+                    STORE_NAME,
+                    "readwrite"
+                );
+
+
+            const store =
+                transaction.objectStore(
+                    STORE_NAME
+                );
+
+
+            const request =
+                store.put(material);
+
+
+            request.onsuccess =
+                function () {
+
+                    resolve();
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+                };
+        }
+    );
+}
+
+
+/* =========================================================
+   GET ALL USER MATERIALS
+========================================================= */
+
+function getMaterialsFromDatabase() {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const transaction =
+                database.transaction(
+                    STORE_NAME,
+                    "readonly"
+                );
+
+
+            const store =
+                transaction.objectStore(
+                    STORE_NAME
+                );
+
+
+            const request =
+                store.getAll();
+
+
+            request.onsuccess =
+                function () {
+
+                    const materials =
+                        request.result
+                            .filter(
+                                material =>
+                                    String(
+                                        material.user_id
+                                    ) ===
+                                    String(
+                                        userId
+                                    )
+                            );
+
+
+                    resolve(
+                        materials
+                    );
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+                };
+        }
+    );
+}
+
+
+/* =========================================================
+   GET ONE MATERIAL
+========================================================= */
+
+function getMaterialFromDatabase(
+    materialId
+) {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const transaction =
+                database.transaction(
+                    STORE_NAME,
+                    "readonly"
+                );
+
+
+            const store =
+                transaction.objectStore(
+                    STORE_NAME
+                );
+
+
+            const request =
+                store.get(
+                    materialId
+                );
+
+
+            request.onsuccess =
+                function () {
+
+                    resolve(
+                        request.result
+                    );
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+                };
+        }
+    );
+}
+
+
+/* =========================================================
+   DELETE FROM INDEXEDDB
+========================================================= */
+
+function deleteMaterialFromDatabase(
+    materialId
+) {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const transaction =
+                database.transaction(
+                    STORE_NAME,
+                    "readwrite"
+                );
+
+
+            const store =
+                transaction.objectStore(
+                    STORE_NAME
+                );
+
+
+            const request =
+                store.delete(
+                    materialId
+                );
+
+
+            request.onsuccess =
+                function () {
+
+                    resolve();
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+                };
+        }
+    );
+}
+
+
+/* =========================================================
+   FORMAT FILE SIZE
+========================================================= */
+
+function formatFileSize(
+    bytes
+) {
+
+    if (bytes < 1024) {
+
+        return `${bytes} B`;
+    }
+
+
+    if (bytes < 1024 * 1024) {
+
+        return `${(
+            bytes / 1024
+        ).toFixed(1)} KB`;
+    }
+
+
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
+}
+
+
+/* =========================================================
+   LOAD MATERIALS
+========================================================= */
+
+async function loadMaterials() {
+
+    try {
+
+        const materials =
+            await getMaterialsFromDatabase();
+
+
+        materialsList.innerHTML =
+            "";
+
+
+        if (
+            materials.length === 0
+        ) {
+
+            materialsList.innerHTML = `
+                <div class="empty-materials">
+                    <p>
+                        No study materials uploaded yet.
+                    </p>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        materials.sort(
+            function (a, b) {
+
+                return (
+                    b.saved_at -
+                    a.saved_at
+                );
+            }
+        );
+
+
+        materials.forEach(
+            function (material) {
+
+                addMaterialToPage(
+                    material
+                );
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Error loading materials:",
+            error
+        );
+
+
+        materialsList.innerHTML = `
+            <div class="empty-materials">
+                <p>
+                    Unable to load study materials.
+                </p>
+            </div>
+        `;
+    }
+}
+
+
+/* =========================================================
+   ADD MATERIAL TO PAGE
+========================================================= */
+
+function addMaterialToPage(
+    material
+) {
+
+    const materialItem =
+        document.createElement(
+            "div"
+        );
+
+
+    materialItem.className =
+        "material-item";
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+
+    const heading =
+        document.createElement(
+            "h3"
+        );
+
+
+    heading.textContent =
+        material.filename;
+
+
+    const description =
+        document.createElement(
+            "p"
+        );
+
+
+    description.textContent =
+        `Saved material · ${formatFileSize(
+            material.size
+        )}`;
+
+
+    content.appendChild(
+        heading
+    );
+
+
+    content.appendChild(
+        description
+    );
+
+
+    /* =====================================================
+       BUTTON CONTAINER
+    ===================================================== */
+
+    const buttonContainer =
+        document.createElement(
+            "div"
+        );
+
+
+    buttonContainer.className =
+        "material-buttons";
+
+
+    /* =====================================================
+       VIEW BUTTON
+    ===================================================== */
+
+    const viewButton =
+        document.createElement(
+            "button"
+        );
+
+
+    viewButton.type =
+        "button";
+
+
+    viewButton.textContent =
+        "View";
+
+
+    viewButton.addEventListener(
+        "click",
+        function () {
+
+            viewMaterial(
+                material
+            );
+        }
+    );
+
+
+    buttonContainer.appendChild(
+        viewButton
+    );
+
+
+    /* =====================================================
+       AI SUMMARY BUTTON
+    ===================================================== */
+
+    const summaryButton =
+        document.createElement(
+            "button"
+        );
+
+
+    summaryButton.type =
+        "button";
+
 
     summaryButton.textContent =
         "AI Summary";
 
-    summaryButton.dataset.summaryShown =
-        "false";
 
-    if (downloadSummaryButton) {
-        downloadSummaryButton.style.display =
-            "none";
-    }
-}
-
-
-/* =========================
-   DOWNLOAD SUMMARY
-========================= */
-
-function downloadSummary(
-    filename,
-    summary
-) {
-    const text =
-        "AI Study Assistant\n\n" +
-        "Summary of: " +
-        filename +
-        "\n\n" +
-        summary;
-
-    const blob =
-        new Blob(
-            [text],
-            {
-                type:
-                    "text/plain"
-            }
-        );
-
-    const url =
-        URL.createObjectURL(
-            blob
-        );
-
-    const link =
-        document.createElement(
-            "a"
-        );
-
-    link.href = url;
-
-    link.download =
-        filename.replace(
-            /\.pdf$/i,
-            ""
-        ) +
-        "_summary.txt";
-
-    document.body.appendChild(
-        link
-    );
-
-    link.click();
-
-    link.remove();
-
-    URL.revokeObjectURL(
-        url
-    );
-}
-
-
-/* =========================
-   DISPLAY MATERIALS
-========================= */
-
-async function displayMaterials() {
-    const materials =
-        await getAllMaterials();
-
-    if (!materialsList) {
-        return;
-    }
-
-    if (materials.length === 0) {
-        materialsList.innerHTML = `
-            <p>
-                No study materials uploaded yet.
-            </p>
-        `;
-
-        return;
-    }
-
-    materials.sort(
-        (a, b) =>
-            new Date(b.createdAt) -
-            new Date(a.createdAt)
-    );
-
-    materialsList.innerHTML =
-        materials
-            .map(
-                material => `
-                    <div
-                        class="material-card"
-                        data-id="${escapeHtml(
-                            material.id
-                        )}"
-                    >
-                        <h3>
-                            ${escapeHtml(
-                                material.filename
-                            )}
-                        </h3>
-
-                        <p>
-                            Saved material ·
-                            ${formatFileSize(
-                                material.size
-                            )}
-                        </p>
-
-                        <button
-                            class="view-material"
-                            data-id="${escapeHtml(
-                                material.id
-                            )}"
-                        >
-                            View
-                        </button>
-
-                        <button
-                            class="summary-material"
-                            data-id="${escapeHtml(
-                                material.id
-                            )}"
-                        >
-                            AI Summary
-                        </button>
-
-                        <button
-                            class="delete-material"
-                            data-id="${escapeHtml(
-                                material.id
-                            )}"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                `
-            )
-            .join("");
-
-    attachMaterialEvents(
-        materials
-    );
-}
-
-
-/* =========================
-   MATERIAL EVENTS
-========================= */
-
-function attachMaterialEvents(
-    materials
-) {
-    document
-        .querySelectorAll(
-            ".view-material"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                function () {
-
-                    const material =
-                        materials.find(
-                            item =>
-                                item.id ===
-                                button.dataset.id
-                        );
-
-                    if (!material) {
-                        return;
-                    }
-
-                    viewMaterial(
-                        material
-                    );
-                }
-            );
-        });
-
-
-    document
-        .querySelectorAll(
-            ".summary-material"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                async function () {
-
-                    const material =
-                        materials.find(
-                            item =>
-                                item.id ===
-                                button.dataset.id
-                        );
-
-                    if (!material) {
-                        return;
-                    }
-
-                    if (
-                        button.dataset
-                            .summaryShown ===
-                        "true"
-                    ) {
-                        hideSummary(
-                            button
-                        );
-
-                        return;
-                    }
-
-                    await showAISummary(
-                        material,
-                        button
-                    );
-                }
-            );
-        });
-
-
-    document
-        .querySelectorAll(
-            ".delete-material"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                async function () {
-
-                    const material =
-                        materials.find(
-                            item =>
-                                item.id ===
-                                button.dataset.id
-                        );
-
-                    if (!material) {
-                        return;
-                    }
-
-                    const confirmed =
-                        confirm(
-                            "Delete this study material?"
-                        );
-
-                    if (!confirmed) {
-                        return;
-                    }
-
-                    await deleteMaterial(
-                        material.id
-                    );
-
-                    await displayMaterials();
-                }
-            );
-        });
-}
-
-
-/* =========================
-   VIEW MATERIAL
-========================= */
-
-function viewMaterial(
-    material
-) {
-    if (!material.file) {
-        return;
-    }
-
-    const url =
-        URL.createObjectURL(
-            material.file
-        );
-
-    window.open(
-        url,
-        "_blank"
-    );
-}
-
-
-/* =========================
-   PROGRESS CONNECTION
-========================= */
-
-function updateProgressMaterials() {
-    getAllMaterials()
-        .then(materials => {
-
-            const metadata =
-                materials.map(
-                    material => ({
-                        id:
-                            material.id,
-
-                        filename:
-                            material.filename,
-
-                        type:
-                            material.type,
-
-                        size:
-                            material.size,
-
-                        createdAt:
-                            material.createdAt
-                    })
-                );
-
-            localStorage.setItem(
-                MATERIALS_KEY,
-                JSON.stringify(
-                    metadata
-                )
-            );
-        })
-        .catch(error => {
-            console.error(
-                "Progress update error:",
-                error
-            );
-        });
-}
-
-
-/* =========================
-   SAVE BUTTON
-========================= */
-
-if (saveMaterialButton) {
-
-    saveMaterialButton.addEventListener(
+    summaryButton.addEventListener(
         "click",
-        async function () {
+        function () {
 
-            if (
-                !materialInput ||
-                !materialInput.files ||
-                materialInput.files.length === 0
-            ) {
-                alert(
-                    "Please select a study material first."
-                );
-
-                return;
-            }
-
-            const file =
-                materialInput.files[0];
-
-            try {
-
-                saveMaterialButton.disabled =
-                    true;
-
-                saveMaterialButton.textContent =
-                    "Saving...";
-
-                await saveMaterial(
-                    file
-                );
-
-                materialInput.value =
-                    "";
-
-                await displayMaterials();
-
-                alert(
-                    "Study material saved successfully."
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "Save material error:",
-                    error
-                );
-
-                alert(
-                    "Unable to save the study material."
-                );
-
-            } finally {
-
-                saveMaterialButton.disabled =
-                    false;
-
-                saveMaterialButton.textContent =
-                    "Save Material";
-            }
+            showLocalSummary(
+                material,
+                summaryButton
+            );
         }
     );
+
+
+    buttonContainer.appendChild(
+        summaryButton
+    );
+
+
+    /* =====================================================
+       DELETE BUTTON
+    ===================================================== */
+
+    const deleteButton =
+        document.createElement(
+            "button"
+        );
+
+
+    deleteButton.type =
+        "button";
+
+
+    deleteButton.textContent =
+        "Delete";
+
+
+    deleteButton.addEventListener(
+        "click",
+        function () {
+
+            deleteMaterial(
+                material.id
+            );
+        }
+    );
+
+
+    buttonContainer.appendChild(
+        deleteButton
+    );
+
+
+    materialItem.appendChild(
+        content
+    );
+
+
+    materialItem.appendChild(
+        buttonContainer
+    );
+
+
+    materialsList.appendChild(
+        materialItem
+    );
 }
 
 
-/* =========================
-   INITIALIZE
-========================= */
+/* =========================================================
+   VIEW MATERIAL
+========================================================= */
 
-async function initializeMaterials() {
+async function viewMaterial(
+    material
+) {
+
     try {
 
-        await openDatabase();
+        const savedMaterial =
+            await getMaterialFromDatabase(
+                material.id
+            );
 
-        await displayMaterials();
 
-        updateProgressMaterials();
+        if (!savedMaterial) {
+
+            showMessage(
+                "Material not found.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const blob =
+            savedMaterial.file;
+
+
+        const fileUrl =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        window.open(
+            fileUrl,
+            "_blank"
+        );
+
 
     } catch (error) {
 
         console.error(
-            "Materials initialization error:",
+            "View material error:",
             error
         );
 
-        if (materialsList) {
-            materialsList.innerHTML = `
-                <p>
-                    Unable to load study materials.
-                </p>
-            `;
-        }
+
+        showMessage(
+            "Unable to open material.",
+            "error"
+        );
     }
 }
 
 
-initializeMaterials();
+/* =========================================================
+   LOCAL AI SUMMARY
+========================================================= */
+
+function showLocalSummary(
+    material,
+    summaryButton
+) {
+
+    if (!materialContent) {
+
+        return;
+    }
+
+
+    materialContent.style.display =
+        "block";
+
+
+    if (downloadSummaryButton) {
+
+        downloadSummaryButton.style.display =
+            "none";
+    }
+
+
+    aiSummaryContent.innerHTML = `
+        <h3>${escapeHtml(
+            material.filename
+        )}</h3>
+
+        <p>
+            This material has been saved successfully
+            in your browser.
+        </p>
+
+        <p>
+            File type:
+            ${escapeHtml(
+                material.type ||
+                "Unknown"
+            )}
+        </p>
+
+        <p>
+            File size:
+            ${formatFileSize(
+                material.size
+            )}
+        </p>
+
+        <p>
+            You can use the View button to open
+            the saved material.
+        </p>
+    `;
+
+
+    summaryButton.textContent =
+        "Hide Summary";
+
+
+    summaryButton.onclick =
+        function () {
+
+            materialContent.style.display =
+                "none";
+
+            summaryButton.textContent =
+                "AI Summary";
+
+            summaryButton.onclick =
+                function () {
+
+                    showLocalSummary(
+                        material,
+                        summaryButton
+                    );
+                };
+        };
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(
+    value
+) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.textContent =
+        value || "";
+
+
+    return div.innerHTML;
+}
+
+
+/* =========================================================
+   DELETE MATERIAL
+========================================================= */
+
+async function deleteMaterial(
+    materialId
+) {
+
+    const confirmed =
+        window.confirm(
+            "Are you sure you want to delete this study material?"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+    }
+
+
+    try {
+
+        await deleteMaterialFromDatabase(
+            materialId
+        );
+
+
+        removeMaterialMetadata(
+            materialId
+        );
+
+
+        materialContent.style.display =
+            "none";
+
+
+        aiSummaryContent.innerHTML =
+            "";
+
+
+        showMessage(
+            "Study material deleted successfully.",
+            "success"
+        );
+
+
+        await loadMaterials();
+
+
+    } catch (error) {
+
+        console.error(
+            "Delete material error:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to delete study material.",
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   UPLOAD / SAVE MATERIAL
+========================================================= */
+
+uploadForm.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+
+        const file =
+            materialFile.files[0];
+
+
+        if (!file) {
+
+            showMessage(
+                "Please select a file.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const material = {
+
+                id:
+                    `${userId}_${Date.now()}_${Math.random()
+                        .toString(36)
+                        .substring(2)}`,
+
+                user_id:
+                    userId,
+
+                filename:
+                    file.name,
+
+                size:
+                    file.size,
+
+                type:
+                    file.type,
+
+                file:
+                    file,
+
+                saved_at:
+                    Date.now()
+            };
+
+
+            await saveMaterialToDatabase(
+                material
+            );
+
+
+            saveMaterialMetadata(
+                material
+            );
+
+
+            materialFile.value =
+                "";
+
+
+            materialContent.style.display =
+                "none";
+
+
+            aiSummaryContent.innerHTML =
+                "";
+
+
+            if (
+                downloadSummaryButton
+            ) {
+
+                downloadSummaryButton.style.display =
+                    "none";
+            }
+
+
+            showMessage(
+                "Study material saved successfully.",
+                "success"
+            );
+
+
+            await loadMaterials();
+
+
+        } catch (error) {
+
+            console.error(
+                "Upload error:",
+                error
+            );
+
+
+            showMessage(
+                "Unable to save study material.",
+                "error"
+            );
+        }
+    }
+);
+
+
+/* =========================================================
+   INITIAL STATE
+========================================================= */
+
+if (materialContent) {
+
+    materialContent.style.display =
+        "none";
+}
+
+
+if (downloadSummaryButton) {
+
+    downloadSummaryButton.style.display =
+        "none";
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+async function startMaterials() {
+
+    try {
+
+        await openDatabase();
+
+        await loadMaterials();
+
+    } catch (error) {
+
+        console.error(
+            "Materials database error:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to open material storage.",
+            "error"
+        );
+    }
+}
+
+
+startMaterials();
