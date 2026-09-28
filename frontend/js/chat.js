@@ -1,350 +1,400 @@
-const CHAT_HISTORY_KEY = "study_assistant_chat_history";
-const USER_KEY = "user";
-
 const chatForm = document.getElementById("chatForm");
-const questionInput = document.getElementById("question");
+const subjectInput = document.getElementById("subjectInput");
+const chatInput = document.getElementById("chatInput");
 const chatMessages = document.getElementById("chatMessages");
-
 const voiceButton = document.getElementById("voiceButton");
 const voiceStatus = document.getElementById("voiceStatus");
 
-const userData = localStorage.getItem(USER_KEY);
+
+/* =========================
+   USER
+========================= */
+
+const userData = localStorage.getItem("user");
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
 const user = JSON.parse(userData);
-const userId = user.user_id || user.id || user.email;
 
-function getChatHistory() {
-    const history = JSON.parse(
-        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
-    );
 
-    return history.filter(
-        item => String(item.user_id) === String(userId)
-    );
-}
-
-function saveChatHistory(question, answer) {
-    const history = JSON.parse(
-        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
-    );
-
-    history.push({
-        id: Date.now(),
-        user_id: userId,
-        question: question,
-        answer: answer,
-        created_at: new Date().toISOString()
-    });
-
-    localStorage.setItem(
-        CHAT_HISTORY_KEY,
-        JSON.stringify(history)
-    );
-}
-
-function addMessage(text, type) {
-    if (!chatMessages) {
-        return;
-    }
-
-    const message = document.createElement("div");
-
-    message.className = `chat-message ${type}`;
-    message.textContent = text;
-
-    chatMessages.appendChild(message);
-
-    chatMessages.scrollTop =
-        chatMessages.scrollHeight;
-}
-
-function generateAnswer(question) {
-    const text = question.toLowerCase().trim();
-
-    if (!text) {
-        return "Please enter a question.";
-    }
-
-    if (
-        text.includes("hello") ||
-        text.includes("hi") ||
-        text.includes("hey")
-    ) {
-        return "Hello. I am your AI Study Assistant. Ask me a study question.";
-    }
-
-    if (
-        text.includes("what is") ||
-        text.includes("define")
-    ) {
-        const topic = question
-            .replace(/what is|define/gi, "")
-            .trim();
-
-        return `Definition: ${topic}
-
-Simple explanation: This topic can be understood by learning its basic meaning, important features, and practical examples.
-
-Example: Try connecting the topic with a simple real-world situation.`;
-    }
-
-    if (text.includes("python")) {
-        return `1. Python is a high-level programming language.
-2. It is widely used for web development, automation, data science, and AI.
-3. Python has simple and readable syntax.
-4. Example: print("Hello World")`;
-    }
-
-    if (text.includes("html")) {
-        return `1. HTML stands for HyperText Markup Language.
-2. HTML is used to create the structure of web pages.
-3. HTML uses elements and tags.
-4. Example: <h1>Hello</h1>`;
-    }
-
-    if (text.includes("css")) {
-        return `1. CSS stands for Cascading Style Sheets.
-2. CSS is used to style HTML elements.
-3. CSS controls colors, sizes, spacing, layouts, and animations.
-4. Example: color: blue;`;
-    }
-
-    if (text.includes("javascript")) {
-        return `1. JavaScript is a programming language used to make web pages interactive.
-2. It can respond to user actions.
-3. It can change HTML and CSS dynamically.
-4. Example: alert("Hello");`;
-    }
-
-    if (
-        text.includes("explain") ||
-        text.includes("how") ||
-        text.includes("why")
-    ) {
-        return `1. Understand the basic concept.
-2. Break the question into smaller parts.
-3. Learn each part with a simple example.
-4. Practice the concept with a few questions.`;
-    }
-
-    return `1. Identify the main concept in your question.
-2. Break the concept into smaller parts.
-3. Learn each part with an example.
-4. Practice the concept to improve your understanding.`;
-}
-
-function speakText(text) {
-    if (!("speechSynthesis" in window)) {
-        return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const speech =
-        new SpeechSynthesisUtterance(text);
-
-    speech.lang = "en-US";
-    speech.rate = 0.8;
-    speech.pitch = 1;
-
-    window.speechSynthesis.speak(speech);
-}
-
-function sendQuestion(shouldSpeak = false) {
-    const question =
-        questionInput
-            ? questionInput.value.trim()
-            : "";
-
-    if (!question) {
-        return;
-    }
-
-    addMessage(
-        question,
-        "user"
-    );
-
-    const answer =
-        generateAnswer(question);
-
-    addMessage(
-        answer,
-        "assistant"
-    );
-
-    saveChatHistory(
-        question,
-        answer
-    );
-
-    if (shouldSpeak) {
-        speakText(answer);
-    }
-
-    questionInput.value = "";
-
-    if (questionInput) {
-        questionInput.focus();
-    }
-}
-
-if (chatForm) {
-    chatForm.addEventListener(
-        "submit",
-        function (event) {
-            event.preventDefault();
-
-            sendQuestion(false);
-        }
-    );
-}
-
-let recognition = null;
-let isListening = false;
+/* =========================
+   VOICE RECOGNITION
+========================= */
 
 const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
+let recognition = null;
+
 if (SpeechRecognition) {
 
-    recognition =
-        new SpeechRecognition();
+    recognition = new SpeechRecognition();
 
-    recognition.lang =
-        "en-US";
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
-    recognition.continuous =
-        false;
 
-    recognition.interimResults =
-        false;
+    recognition.onstart = function () {
 
-    recognition.onstart =
-        function () {
+        voiceButton.classList.add("listening");
 
-            isListening = true;
+        voiceStatus.textContent = "";
+    };
 
-            if (voiceStatus) {
-                voiceStatus.textContent =
-                    "Listening...";
-            }
 
-            if (voiceButton) {
-                voiceButton.textContent =
-                    "🎤 Listening...";
-            }
-        };
+    recognition.onresult = function (event) {
 
-    recognition.onresult =
-        function (event) {
+        const transcript =
+            event.results[0][0].transcript.trim();
 
-            const transcript =
-                event.results[0][0].transcript;
+        chatInput.value = transcript;
 
-            if (questionInput) {
-                questionInput.value =
-                    transcript;
-            }
+        voiceStatus.textContent = "";
 
-            if (voiceStatus) {
-                voiceStatus.textContent =
-                    "Voice captured.";
-            }
+        voiceButton.classList.remove("listening");
 
-            sendQuestion(true);
-        };
+        chatInput.focus();
+    };
 
-    recognition.onerror =
-        function () {
 
-            if (voiceStatus) {
-                voiceStatus.textContent =
-                    "Could not hear you. Please try again.";
-            }
-        };
+    recognition.onerror = function (event) {
 
-    recognition.onend =
-        function () {
-
-            isListening = false;
-
-            if (voiceButton) {
-                voiceButton.textContent =
-                    "🎤 Voice";
-            }
-        };
-
-    if (voiceButton) {
-
-        voiceButton.addEventListener(
-            "click",
-            function () {
-
-                if (isListening) {
-                    recognition.stop();
-                    return;
-                }
-
-                if (voiceStatus) {
-                    voiceStatus.textContent =
-                        "Starting microphone...";
-                }
-
-                try {
-                    recognition.start();
-                } catch (error) {
-                    if (voiceStatus) {
-                        voiceStatus.textContent =
-                            "Please allow microphone access and try again.";
-                    }
-                }
-            }
+        console.error(
+            "Speech recognition error:",
+            event.error
         );
-    }
+
+        voiceStatus.textContent = "";
+
+        voiceButton.classList.remove("listening");
+    };
+
+
+    recognition.onend = function () {
+
+        voiceButton.classList.remove("listening");
+
+        voiceStatus.textContent = "";
+    };
 
 } else {
 
-    if (voiceButton) {
-        voiceButton.disabled = true;
-        voiceButton.textContent =
-            "Voice Not Supported";
-    }
+    voiceButton.disabled = true;
 
-    if (voiceStatus) {
-        voiceStatus.textContent =
-            "Voice recognition is not supported by this browser.";
-    }
+    voiceStatus.textContent = "";
 }
 
-function loadRecentChat() {
 
-    if (!chatMessages) {
+/* =========================
+   MICROPHONE BUTTON
+========================= */
+
+voiceButton.addEventListener(
+    "click",
+    function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!recognition) {
+            return;
+        }
+
+        try {
+
+            recognition.start();
+
+        } catch (error) {
+
+            console.error(
+                "Microphone error:",
+                error
+            );
+        }
+    }
+);
+
+
+/* =========================
+   ASK / CHAT
+========================= */
+
+chatForm.addEventListener(
+    "submit",
+    function (event) {
+
+        event.preventDefault();
+
+
+        const subject =
+            subjectInput.value.trim();
+
+        const question =
+            chatInput.value.trim();
+
+
+        if (!subject) {
+
+            subjectInput.focus();
+
+            return;
+        }
+
+
+        if (!question) {
+
+            chatInput.focus();
+
+            return;
+        }
+
+
+        addMessage(
+            "You",
+            question,
+            "user-message"
+        );
+
+
+        chatInput.value = "";
+
+
+        const answer =
+            generateStudyAnswer(
+                subject,
+                question
+            );
+
+
+        addMessage(
+            "AI Assistant",
+            answer,
+            "ai-message"
+        );
+
+
+        speakAnswer(answer);
+
+
+        chatMessages.scrollTop =
+            chatMessages.scrollHeight;
+    }
+);
+
+
+/* =========================
+   STUDY ANSWER
+========================= */
+
+function generateStudyAnswer(
+    subject,
+    question
+) {
+
+    const text =
+        question.toLowerCase().trim();
+
+
+    if (
+        text.includes("string") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A string is a sequence of characters used to represent text.\n\n" +
+
+            "2. Simple explanation\n" +
+            "Strings can contain letters, numbers, spaces, and symbols.\n\n" +
+
+            "3. Example\n" +
+            "name = \"Hello\""
+        );
+    }
+
+
+    if (
+        text.includes("variable") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A variable is a name used to store a value.\n\n" +
+
+            "2. Simple explanation\n" +
+            "The value stored in a variable can be changed during a program.\n\n" +
+
+            "3. Example\n" +
+            "name = \"Eramma\""
+        );
+    }
+
+
+    if (
+        text.includes("list") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A list is an ordered collection of items in Python.\n\n" +
+
+            "2. Simple explanation\n" +
+            "A list can store multiple values in one variable.\n\n" +
+
+            "3. Example\n" +
+            "numbers = [10, 20, 30]"
+        );
+    }
+
+
+    if (
+        text.includes("tuple") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A tuple is an ordered collection of items that cannot be changed after creation.\n\n" +
+
+            "2. Example\n" +
+            "numbers = (10, 20, 30)"
+        );
+    }
+
+
+    if (
+        text.includes("dictionary") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A dictionary stores data as key-value pairs.\n\n" +
+
+            "2. Example\n" +
+            "student = {\"name\": \"Eramma\", \"age\": 22}"
+        );
+    }
+
+
+    if (
+        text.includes("function") &&
+        subject.toLowerCase().includes("python")
+    ) {
+
+        return (
+            "1. Definition\n" +
+            "A function is a reusable block of code that performs a specific task.\n\n" +
+
+            "2. Example\n" +
+            "def greet():\n" +
+            "    print(\"Hello\")"
+        );
+    }
+
+
+    return (
+        "1. Your question\n" +
+        question + "\n\n" +
+
+        "2. Answer\n" +
+        "This topic needs a more specific explanation.\n\n" +
+
+        "3. Tip\n" +
+        "Try asking about a definition, example, or basic concept."
+    );
+}
+
+
+/* =========================
+   ADD MESSAGE
+========================= */
+
+function addMessage(
+    sender,
+    text,
+    messageClass
+) {
+
+    const message =
+        document.createElement("div");
+
+    message.className =
+        `message ${messageClass}`;
+
+
+    const title =
+        document.createElement("strong");
+
+    title.textContent =
+        sender;
+
+
+    const paragraph =
+        document.createElement("p");
+
+    paragraph.textContent =
+        text;
+
+
+    message.appendChild(title);
+
+    message.appendChild(paragraph);
+
+    chatMessages.appendChild(message);
+
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
+
+    return paragraph;
+}
+
+
+/* =========================
+   SPEAK AI ANSWER
+========================= */
+
+function speakAnswer(answer) {
+
+    if (
+        !(
+            "speechSynthesis"
+            in window
+        )
+    ) {
+
         return;
     }
 
-    const history =
-        getChatHistory();
 
-    history
-        .slice(-10)
-        .forEach(item => {
+    window.speechSynthesis.cancel();
 
-            addMessage(
-                item.question,
-                "user"
-            );
 
-            addMessage(
-                item.answer,
-                "assistant"
-            );
-        });
+    const speech =
+        new SpeechSynthesisUtterance(
+            answer
+        );
+
+
+    speech.lang =
+        "en-US";
+
+    speech.rate =
+        0.9;
+
+    speech.pitch =
+        1;
+
+
+    window.speechSynthesis.speak(
+        speech
+    );
 }
-
-loadRecentChat();
