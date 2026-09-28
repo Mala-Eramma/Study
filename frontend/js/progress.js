@@ -1,309 +1,357 @@
 const USER_KEY = "user";
+const PLANNER_KEY = "study_assistant_planner";
+const MATERIALS_KEY = "study_assistant_materials";
+const CHAT_HISTORY_KEY = "study_assistant_chat_history";
+const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
+const QUIZ_PROGRESS_KEY = "study_assistant_quiz_progress";
 
-const PLANNER_KEY =
-    "study_assistant_planner";
-
-const MATERIALS_KEY =
-    "study_assistant_materials";
-
-const CHAT_HISTORY_KEY =
-    "study_assistant_chat_history";
-
-const QUIZ_PROGRESS_KEY =
-    "study_assistant_quiz_progress";
-
-
-/* =========================
-   USER
-========================= */
-
-const userData =
-    localStorage.getItem(USER_KEY);
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
-const user =
-    JSON.parse(userData);
+const user = JSON.parse(userData);
+const userId = user.user_id || user.id || user.email;
 
-const userId =
-    user.user_id ||
-    user.id ||
-    user.email;
+const taskCount = document.getElementById("taskCount");
+const materialCount = document.getElementById("materialCount");
+const quizScore = document.getElementById("quizScore");
+const progressBar = document.getElementById("progressBar");
+const progressMessage = document.getElementById("progressMessage");
+const studySummary = document.getElementById("studySummary");
 
-
-/* =========================
-   ELEMENTS
-========================= */
-
-const taskCount =
-    document.getElementById(
-        "taskCount"
-    );
-
-const materialCount =
-    document.getElementById(
-        "materialCount"
-    );
-
-const quizScore =
-    document.getElementById(
-        "quizScore"
-    );
-
-const progressBar =
-    document.getElementById(
-        "progressBar"
-    );
-
-const progressMessage =
-    document.getElementById(
-        "progressMessage"
-    );
-
-const studySummary =
-    document.getElementById(
-        "studySummary"
-    );
-
-
-/* =========================
-   GET USER DATA
-========================= */
 
 function getUserData(key) {
-
     let data = [];
 
     try {
-
-        data =
-            JSON.parse(
-                localStorage.getItem(
-                    key
-                ) || "[]"
-            );
-
+        data = JSON.parse(localStorage.getItem(key) || "[]");
     } catch (error) {
-
-        console.error(
-            `Unable to read ${key}:`,
-            error
-        );
-
+        console.error(`Unable to read ${key}:`, error);
         data = [];
     }
-
 
     if (!Array.isArray(data)) {
         return [];
     }
 
-
-    return data.filter(
-        item =>
-            String(
-                item.user_id
-            ) ===
-            String(
-                userId
-            )
+    return data.filter(item =>
+        String(item.user_id) === String(userId)
     );
 }
 
 
-/* =========================
-   TASK COUNT
-========================= */
+/* ---------------- TASKS ---------------- */
 
 function getTaskCount() {
 
-    const tasks =
-        getUserData(
-            PLANNER_KEY
-        );
-
+    const tasks = getUserData(PLANNER_KEY);
 
     if (taskCount) {
-
-        taskCount.textContent =
-            tasks.length;
+        taskCount.textContent = tasks.length;
     }
-
 
     return tasks.length;
 }
 
 
-/* =========================
-   MATERIAL COUNT
-========================= */
+/* ---------------- MATERIALS ---------------- */
 
 function getMaterialCount() {
 
-    const materials =
-        getUserData(
-            MATERIALS_KEY
-        );
-
+    const materials = getUserData(MATERIALS_KEY);
 
     if (materialCount) {
-
-        materialCount.textContent =
-            materials.length;
+        materialCount.textContent = materials.length;
     }
-
 
     return materials.length;
 }
 
 
-/* =========================
-   CHAT COUNT
-========================= */
+/* ---------------- CHAT ---------------- */
 
 function getChatCount() {
 
-    return getUserData(
-        CHAT_HISTORY_KEY
-    ).length;
+    return getUserData(CHAT_HISTORY_KEY).length;
 }
 
 
-/* =========================
-   QUIZ DATA
-========================= */
+/* ---------------- QUIZ ---------------- */
 
 function getQuizData() {
 
-    return getUserData(
-        QUIZ_PROGRESS_KEY
-    );
+    return getUserData(QUIZ_PROGRESS_KEY);
 }
 
-
-/* =========================
-   QUIZ COUNT
-========================= */
 
 function getQuizCount() {
 
-    const quizzes =
-        getQuizData();
-
-    return quizzes.length;
+    return getQuizData().length;
 }
 
 
-/* =========================
-   QUIZ SCORE
-========================= */
-
 function getQuizScore() {
 
-    const quizzes =
-        getQuizData();
+    const quizzes = getQuizData();
 
-
-    if (
-        !quizzes ||
-        quizzes.length === 0
-    ) {
+    if (quizzes.length === 0) {
 
         if (quizScore) {
-            quizScore.textContent =
-                "0%";
+            quizScore.textContent = "0%";
         }
 
         return 0;
     }
 
-
     let totalPercentage = 0;
 
+    quizzes.forEach(quiz => {
 
-    quizzes.forEach(
-        quiz => {
+        let percentage = Number(quiz.percentage);
 
-            let percentage =
-                Number(
-                    quiz.percentage
-                );
+        if (!Number.isFinite(percentage)) {
 
+            const score = Number(quiz.score);
+            const total = Number(quiz.total);
 
-            /*
-             * If percentage is not stored,
-             * calculate it from score and total.
-             */
-
-            if (
-                !Number.isFinite(
-                    percentage
-                )
-            ) {
-
-                const score =
-                    Number(
-                        quiz.score
-                    );
-
-                const total =
-                    Number(
-                        quiz.total
-                    );
-
-
-                if (
-                    total > 0
-                ) {
-
-                    percentage =
-                        (
-                            score /
-                            total
-                        ) *
-                        100;
-
-                } else {
-
-                    percentage = 0;
-                }
+            if (total > 0) {
+                percentage = (score / total) * 100;
+            } else {
+                percentage = 0;
             }
-
-
-            totalPercentage +=
-                percentage;
         }
-    );
 
-
-    /*
-     * Average score of all
-     * completed quizzes.
-     */
+        totalPercentage += percentage;
+    });
 
     const averageScore =
-        Math.round(
-            totalPercentage /
-            quizzes.length
-        );
-
+        Math.round(totalPercentage / quizzes.length);
 
     if (quizScore) {
-
-        quizScore.textContent =
-            `${averageScore}%`;
+        quizScore.textContent = `${averageScore}%`;
     }
-
 
     return averageScore;
 }
 
 
-/* =========================
-   LEARNING PROGRESS
-========================= */
+/* ---------------- SUBJECT DETECTION ---------------- */
+
+function detectSubject(topic) {
+
+    const q = topic.toLowerCase();
+
+    if (
+        q.includes("python") ||
+        q.includes("list") ||
+        q.includes("tuple") ||
+        q.includes("dictionary") ||
+        q.includes("function") ||
+        q.includes("inheritance") ||
+        q.includes("class") ||
+        q.includes("object") ||
+        q.includes("exception") ||
+        q.includes("loop") ||
+        q.includes("variable") ||
+        q.includes("string")
+    ) {
+        return "Python";
+    }
+
+    if (
+        q.includes("html") ||
+        q.includes("anchor") ||
+        q.includes("root element") ||
+        q.includes("tag") ||
+        q.includes("form") ||
+        q.includes("heading") ||
+        q.includes("paragraph")
+    ) {
+        return "HTML";
+    }
+
+    if (
+        q.includes("css") ||
+        q.includes("flexbox") ||
+        q.includes("grid") ||
+        q.includes("media query") ||
+        q.includes("responsive")
+    ) {
+        return "CSS";
+    }
+
+    if (
+        q.includes("javascript") ||
+        q.includes("javascript") ||
+        q.includes("array") ||
+        q.includes("let") ||
+        q.includes("const") ||
+        q.includes("dom")
+    ) {
+        return "JavaScript";
+    }
+
+    if (
+        q.includes("sql") ||
+        q.includes("mysql") ||
+        q.includes("primary key") ||
+        q.includes("foreign key") ||
+        q.includes("select") ||
+        q.includes("insert") ||
+        q.includes("update") ||
+        q.includes("delete")
+    ) {
+        return "SQL / MySQL";
+    }
+
+    if (
+        q.includes("oops") ||
+        q.includes("oop") ||
+        q.includes("encapsulation") ||
+        q.includes("polymorphism") ||
+        q.includes("abstraction")
+    ) {
+        return "OOP";
+    }
+
+    return "Other";
+}
+
+
+/* ---------------- CLEAN TOPIC NAME ---------------- */
+
+function getTopicName(topic) {
+
+    let name = topic.trim();
+
+    name = name.replace(
+        /^(what is|what are|explain|define|tell me about|meaning of|why is|why do we use|how does|how do|how to)\s+/i,
+        ""
+    );
+
+    if (!name) {
+        name = topic.trim();
+    }
+
+    return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+
+/* ---------------- LEARNED SUBJECTS ---------------- */
+
+function getLearnedSubjects() {
+
+    const topics = getUserData(CHAT_TOPICS_KEY);
+
+    const subjects = {};
+
+    topics.forEach(item => {
+
+        if (!item.topic) {
+            return;
+        }
+
+        const subject = detectSubject(item.topic);
+        const topicName = getTopicName(item.topic);
+
+        if (!subjects[subject]) {
+            subjects[subject] = [];
+        }
+
+        const alreadyExists =
+            subjects[subject].some(
+                topic =>
+                    topic.toLowerCase() ===
+                    topicName.toLowerCase()
+            );
+
+        if (!alreadyExists) {
+            subjects[subject].push(topicName);
+        }
+    });
+
+    return subjects;
+}
+
+
+/* ---------------- STUDY SUMMARY ---------------- */
+
+function updateStudySummary() {
+
+    if (!studySummary) {
+        return;
+    }
+
+    studySummary.innerHTML = "";
+
+    const subjects = getLearnedSubjects();
+
+    const subjectNames = Object.keys(subjects);
+
+    if (subjectNames.length === 0) {
+
+        const emptyMessage =
+            document.createElement("p");
+
+        emptyMessage.textContent =
+            "Your learned topics will appear here after you study using AI Chat.";
+
+        studySummary.appendChild(emptyMessage);
+
+        return;
+    }
+
+    subjectNames.forEach(subject => {
+
+        const subjectContainer =
+            document.createElement("div");
+
+        subjectContainer.className =
+            "subject-summary-container";
+
+
+        const subjectTitle =
+            document.createElement("h3");
+
+        subjectTitle.textContent = subject;
+
+
+        const learnedTitle =
+            document.createElement("p");
+
+        learnedTitle.textContent =
+            "What you learned";
+
+
+        const topicList =
+            document.createElement("ul");
+
+
+        subjects[subject].forEach(topic => {
+
+            const topicItem =
+                document.createElement("li");
+
+            topicItem.textContent = topic;
+
+            topicList.appendChild(topicItem);
+
+        });
+
+
+        subjectContainer.appendChild(subjectTitle);
+        subjectContainer.appendChild(learnedTitle);
+        subjectContainer.appendChild(topicList);
+
+        studySummary.appendChild(subjectContainer);
+
+    });
+}
+
+
+/* ---------------- PROGRESS ---------------- */
 
 function updateLearningProgress(
     tasks,
@@ -314,52 +362,23 @@ function updateLearningProgress(
 
     let progress = 0;
 
-
-    /*
-     * Planner
-     */
-
     if (tasks > 0) {
-
         progress += 25;
     }
-
-
-    /*
-     * Materials
-     */
 
     if (materials > 0) {
-
         progress += 25;
     }
-
-
-    /*
-     * AI Tutor
-     */
 
     if (chatCount > 0) {
-
         progress += 25;
     }
-
-
-    /*
-     * Quiz
-     */
 
     if (quizCount > 0) {
-
         progress += 25;
     }
 
-
-    progress =
-        Math.min(
-            progress,
-            100
-        );
+    progress = Math.min(progress, 100);
 
 
     if (progressBar) {
@@ -379,23 +398,17 @@ function updateLearningProgress(
             progressMessage.textContent =
                 "Start studying to track your progress.";
 
-        }
-
-        else if (progress < 50) {
+        } else if (progress < 50) {
 
             progressMessage.textContent =
                 "Good start. Keep studying regularly.";
 
-        }
-
-        else if (progress < 100) {
+        } else if (progress < 100) {
 
             progressMessage.textContent =
                 "Good progress. Keep learning and practicing.";
 
-        }
-
-        else {
+        } else {
 
             progressMessage.textContent =
                 "Great work. You are actively using your study assistant.";
@@ -404,87 +417,22 @@ function updateLearningProgress(
 }
 
 
-/* =========================
-   STUDY SUMMARY
-========================= */
-
-function updateStudySummary(
-    tasks,
-    materials,
-    chatCount,
-    quizCount,
-    score
-) {
-
-    if (!studySummary) {
-        return;
-    }
-
-
-    studySummary.innerHTML =
-        "";
-
-
-    const summaryItems = [
-
-        `Study tasks: ${tasks}`,
-
-        `Study materials: ${materials}`,
-
-        `AI study questions: ${chatCount}`,
-
-        `Quizzes completed: ${quizCount}`,
-
-        `Average quiz score: ${score}%`
-    ];
-
-
-    summaryItems.forEach(
-        text => {
-
-            const paragraph =
-                document.createElement(
-                    "p"
-                );
-
-
-            paragraph.textContent =
-                text;
-
-
-            studySummary.appendChild(
-                paragraph
-            );
-        }
-    );
-}
-
-
-/* =========================
-   LOAD PROGRESS
-========================= */
+/* ---------------- LOAD PROGRESS ---------------- */
 
 function loadProgress() {
 
-    const tasks =
-        getTaskCount();
-
+    const tasks = getTaskCount();
 
     const materials =
         getMaterialCount();
 
-
     const chatCount =
         getChatCount();
-
 
     const quizCount =
         getQuizCount();
 
-
-    const score =
-        getQuizScore();
-
+    getQuizScore();
 
     updateLearningProgress(
         tasks,
@@ -493,19 +441,8 @@ function loadProgress() {
         quizCount
     );
 
-
-    updateStudySummary(
-        tasks,
-        materials,
-        chatCount,
-        quizCount,
-        score
-    );
+    updateStudySummary();
 }
 
-
-/* =========================
-   START
-========================= */
 
 loadProgress();
