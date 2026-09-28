@@ -4,34 +4,52 @@ const USER_KEY = "user";
 const historyContainer =
     document.getElementById("historyContainer");
 
-const userData = localStorage.getItem(USER_KEY);
+const userData =
+    localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
-const user = JSON.parse(userData);
+const user =
+    JSON.parse(userData);
 
-const userId = user.user_id;
+const userId =
+    user.user_id ||
+    user.id ||
+    user.email;
 
 function getUserHistory() {
-    const history = JSON.parse(
-        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
-    );
+
+    const history =
+        JSON.parse(
+            localStorage.getItem(
+                CHAT_HISTORY_KEY
+            ) || "[]"
+        );
 
     return history.filter(
-        item => String(item.user_id) === String(userId)
+        item =>
+            String(item.user_id) ===
+            String(userId)
     );
 }
 
 function saveHistory(history) {
-    const allHistory = JSON.parse(
-        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
-    );
 
-    const otherUsersHistory = allHistory.filter(
-        item => String(item.user_id) !== String(userId)
-    );
+    const allHistory =
+        JSON.parse(
+            localStorage.getItem(
+                CHAT_HISTORY_KEY
+            ) || "[]"
+        );
+
+    const otherUsersHistory =
+        allHistory.filter(
+            item =>
+                String(item.user_id) !==
+                String(userId)
+        );
 
     localStorage.setItem(
         CHAT_HISTORY_KEY,
@@ -43,11 +61,16 @@ function saveHistory(history) {
 }
 
 function deleteHistory(historyId) {
-    const history = getUserHistory();
 
-    const updatedHistory = history.filter(
-        item => String(item.id) !== String(historyId)
-    );
+    const history =
+        getUserHistory();
+
+    const updatedHistory =
+        history.filter(
+            item =>
+                String(item.id) !==
+                String(historyId)
+        );
 
     saveHistory(updatedHistory);
 
@@ -55,23 +78,30 @@ function deleteHistory(historyId) {
 }
 
 function createHistoryItem(item) {
-    const wrapper = document.createElement("div");
 
-    wrapper.className = "history-item";
+    const wrapper =
+        document.createElement("div");
 
-    const question = document.createElement("h3");
+    wrapper.className =
+        "history-item";
+
+    const question =
+        document.createElement("h3");
 
     question.textContent =
         `Question: ${item.question}`;
 
-    const answer = document.createElement("p");
+    const answer =
+        document.createElement("p");
 
     answer.textContent =
         `Answer: ${item.answer}`;
 
-    const date = document.createElement("small");
+    const date =
+        document.createElement("small");
 
-    const dateValue = new Date(item.created_at);
+    const dateValue =
+        new Date(item.created_at);
 
     date.textContent =
         dateValue.toLocaleString();
@@ -79,7 +109,8 @@ function createHistoryItem(item) {
     const deleteButton =
         document.createElement("button");
 
-    deleteButton.textContent = "Delete";
+    deleteButton.textContent =
+        "Delete";
 
     deleteButton.addEventListener(
         "click",
@@ -97,22 +128,27 @@ function createHistoryItem(item) {
 }
 
 function loadHistory() {
+
     if (!historyContainer) {
         return;
     }
 
     historyContainer.innerHTML = "";
 
-    const history = getUserHistory();
+    const history =
+        getUserHistory();
 
     if (history.length === 0) {
+
         const message =
             document.createElement("p");
 
         message.textContent =
             "No chat history available.";
 
-        historyContainer.appendChild(message);
+        historyContainer.appendChild(
+            message
+        );
 
         return;
     }
@@ -120,11 +156,13 @@ function loadHistory() {
     history
         .slice()
         .reverse()
-        .forEach(item => {
-            historyContainer.appendChild(
-                createHistoryItem(item)
-            );
-        });
+        .forEach(
+            item => {
+                historyContainer.appendChild(
+                    createHistoryItem(item)
+                );
+            }
+        );
 }
 
 loadHistory();

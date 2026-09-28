@@ -8,32 +8,52 @@ if (!userData) {
 }
 
 const user = JSON.parse(userData);
-const userId = user.user_id;
 
-const materialForm = document.getElementById("materialForm");
-const materialList = document.getElementById("materialList");
-const fileInput = document.getElementById("fileInput");
+const userId =
+    user.user_id ||
+    user.id ||
+    user.email;
+
+const materialForm =
+    document.getElementById("materialForm");
+
+const materialList =
+    document.getElementById("materialList");
+
+const fileInput =
+    document.getElementById("fileInput");
 
 function getMaterials() {
-    const materials = JSON.parse(
-        localStorage.getItem(MATERIALS_KEY) || "[]"
-    );
+
+    const materials =
+        JSON.parse(
+            localStorage.getItem(
+                MATERIALS_KEY
+            ) || "[]"
+        );
 
     return materials.filter(
         material =>
-            String(material.user_id) === String(userId)
+            String(material.user_id) ===
+            String(userId)
     );
 }
 
 function saveMaterials(materials) {
-    const allMaterials = JSON.parse(
-        localStorage.getItem(MATERIALS_KEY) || "[]"
-    );
 
-    const otherUsersMaterials = allMaterials.filter(
-        material =>
-            String(material.user_id) !== String(userId)
-    );
+    const allMaterials =
+        JSON.parse(
+            localStorage.getItem(
+                MATERIALS_KEY
+            ) || "[]"
+        );
+
+    const otherUsersMaterials =
+        allMaterials.filter(
+            material =>
+                String(material.user_id) !==
+                String(userId)
+        );
 
     localStorage.setItem(
         MATERIALS_KEY,
@@ -45,22 +65,30 @@ function saveMaterials(materials) {
 }
 
 function formatFileSize(bytes) {
+
     if (bytes < 1024) {
         return `${bytes} B`;
     }
 
     if (bytes < 1024 * 1024) {
-        return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(
+            bytes / 1024
+        ).toFixed(1)} KB`;
     }
 
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
 }
 
 function createMaterialElement(material) {
+
     const container =
         document.createElement("div");
 
-    container.className = "material-item";
+    container.className =
+        "material-item";
 
     const title =
         document.createElement("h3");
@@ -72,7 +100,9 @@ function createMaterialElement(material) {
         document.createElement("p");
 
     size.textContent =
-        `Size: ${formatFileSize(material.size)}`;
+        `Size: ${formatFileSize(
+            material.size
+        )}`;
 
     const date =
         document.createElement("p");
@@ -114,26 +144,31 @@ function createMaterialElement(material) {
     container.appendChild(viewButton);
     container.appendChild(deleteButton);
 
-    materialList.appendChild(container);
+    return container;
 }
 
 function loadMaterials() {
+
     if (!materialList) {
         return;
     }
 
     materialList.innerHTML = "";
 
-    const materials = getMaterials();
+    const materials =
+        getMaterials();
 
     if (materials.length === 0) {
+
         const message =
             document.createElement("p");
 
         message.textContent =
             "No study materials uploaded yet.";
 
-        materialList.appendChild(message);
+        materialList.appendChild(
+            message
+        );
 
         return;
     }
@@ -142,27 +177,45 @@ function loadMaterials() {
         .slice()
         .reverse()
         .forEach(material => {
-            createMaterialElement(material);
+
+            materialList.appendChild(
+                createMaterialElement(
+                    material
+                )
+            );
         });
 }
 
 function viewMaterial(materialId) {
-    const materials = getMaterials();
 
-    const material = materials.find(
-        item =>
-            String(item.id) === String(materialId)
-    );
+    const materials =
+        getMaterials();
+
+    const material =
+        materials.find(
+            item =>
+                String(item.id) ===
+                String(materialId)
+        );
 
     if (!material || !material.data) {
         return;
     }
 
+    const parts =
+        material.data.split(",");
+
+    if (parts.length < 2) {
+        return;
+    }
+
     const byteCharacters =
-        atob(material.data.split(",")[1]);
+        atob(parts[1]);
 
     const byteNumbers =
-        new Array(byteCharacters.length);
+        new Array(
+            byteCharacters.length
+        );
 
     for (
         let i = 0;
@@ -174,24 +227,33 @@ function viewMaterial(materialId) {
     }
 
     const byteArray =
-        new Uint8Array(byteNumbers);
+        new Uint8Array(
+            byteNumbers
+        );
 
     const blob =
         new Blob(
             [byteArray],
             {
-                type: material.type
+                type:
+                    material.type ||
+                    "application/octet-stream"
             }
         );
 
     const url =
         URL.createObjectURL(blob);
 
-    window.open(url, "_blank");
+    window.open(
+        url,
+        "_blank"
+    );
 }
 
 function deleteMaterial(materialId) {
-    const materials = getMaterials();
+
+    const materials =
+        getMaterials();
 
     const updatedMaterials =
         materials.filter(
@@ -200,21 +262,31 @@ function deleteMaterial(materialId) {
                 String(materialId)
         );
 
-    saveMaterials(updatedMaterials);
+    saveMaterials(
+        updatedMaterials
+    );
 
     loadMaterials();
 }
 
-if (materialForm && fileInput) {
+if (
+    materialForm &&
+    fileInput
+) {
+
     materialForm.addEventListener(
         "submit",
         function (event) {
+
             event.preventDefault();
 
-            const file = fileInput.files[0];
+            const file =
+                fileInput.files[0];
 
             if (!file) {
-                alert("Please select a file.");
+                alert(
+                    "Please select a file."
+                );
                 return;
             }
 
@@ -237,29 +309,48 @@ if (materialForm && fileInput) {
             const reader =
                 new FileReader();
 
-            reader.onload = function () {
-                const materials =
-                    getMaterials();
+            reader.onload =
+                function () {
 
-                materials.push({
-                    id: Date.now(),
-                    user_id: userId,
-                    filename: file.name,
-                    size: file.size,
-                    type: file.type,
-                    data: reader.result,
-                    created_at:
-                        new Date().toISOString()
-                });
+                    const materials =
+                        getMaterials();
 
-                saveMaterials(materials);
+                    materials.push({
 
-                fileInput.value = "";
+                        id: Date.now(),
 
-                loadMaterials();
-            };
+                        user_id:
+                            userId,
 
-            reader.readAsDataURL(file);
+                        filename:
+                            file.name,
+
+                        size:
+                            file.size,
+
+                        type:
+                            file.type,
+
+                        data:
+                            reader.result,
+
+                        created_at:
+                            new Date()
+                                .toISOString()
+                    });
+
+                    saveMaterials(
+                        materials
+                    );
+
+                    fileInput.value = "";
+
+                    loadMaterials();
+                };
+
+            reader.readAsDataURL(
+                file
+            );
         }
     );
 }

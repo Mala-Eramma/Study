@@ -7,34 +7,52 @@ const plannerForm =
 const plannerList =
     document.getElementById("plannerList");
 
-const userData = localStorage.getItem(USER_KEY);
+const userData =
+    localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
-const user = JSON.parse(userData);
+const user =
+    JSON.parse(userData);
 
-const userId = user.user_id;
+const userId =
+    user.user_id ||
+    user.id ||
+    user.email;
 
 function getPlannerTasks() {
-    const tasks = JSON.parse(
-        localStorage.getItem(PLANNER_KEY) || "[]"
-    );
+
+    const tasks =
+        JSON.parse(
+            localStorage.getItem(
+                PLANNER_KEY
+            ) || "[]"
+        );
 
     return tasks.filter(
-        task => String(task.user_id) === String(userId)
+        task =>
+            String(task.user_id) ===
+            String(userId)
     );
 }
 
 function savePlannerTasks(tasks) {
-    const allTasks = JSON.parse(
-        localStorage.getItem(PLANNER_KEY) || "[]"
-    );
 
-    const otherUsersTasks = allTasks.filter(
-        task => String(task.user_id) !== String(userId)
-    );
+    const allTasks =
+        JSON.parse(
+            localStorage.getItem(
+                PLANNER_KEY
+            ) || "[]"
+        );
+
+    const otherUsersTasks =
+        allTasks.filter(
+            task =>
+                String(task.user_id) !==
+                String(userId)
+        );
 
     localStorage.setItem(
         PLANNER_KEY,
@@ -46,41 +64,65 @@ function savePlannerTasks(tasks) {
 }
 
 function addTask(taskData) {
-    const tasks = getPlannerTasks();
+
+    const tasks =
+        getPlannerTasks();
 
     const newTask = {
+
         id: Date.now(),
-        user_id: userId,
-        subject: taskData.subject,
-        task: taskData.task,
-        study_date: taskData.study_date,
-        study_time: taskData.study_time
+
+        user_id:
+            userId,
+
+        subject:
+            taskData.subject,
+
+        task:
+            taskData.task,
+
+        study_date:
+            taskData.study_date,
+
+        study_time:
+            taskData.study_time
     };
 
     tasks.push(newTask);
 
-    savePlannerTasks(tasks);
+    savePlannerTasks(
+        tasks
+    );
 
     loadTasks();
 }
 
 function deleteTask(taskId) {
-    const tasks = getPlannerTasks();
 
-    const updatedTasks = tasks.filter(
-        task => String(task.id) !== String(taskId)
+    const tasks =
+        getPlannerTasks();
+
+    const updatedTasks =
+        tasks.filter(
+            task =>
+                String(task.id) !==
+                String(taskId)
+        );
+
+    savePlannerTasks(
+        updatedTasks
     );
-
-    savePlannerTasks(updatedTasks);
 
     loadTasks();
 }
 
 function createTaskElement(task) {
+
     const item =
         document.createElement("div");
 
-    item.className = "planner-task";
+    item.className =
+        "planner-task";
 
     const subject =
         document.createElement("h3");
@@ -129,27 +171,33 @@ function createTaskElement(task) {
 }
 
 function loadTasks() {
+
     if (!plannerList) {
         return;
     }
 
     plannerList.innerHTML = "";
 
-    const tasks = getPlannerTasks();
+    const tasks =
+        getPlannerTasks();
 
     if (tasks.length === 0) {
+
         const message =
             document.createElement("p");
 
         message.textContent =
             "No study tasks available.";
 
-        plannerList.appendChild(message);
+        plannerList.appendChild(
+            message
+        );
 
         return;
     }
 
     tasks
+        .slice()
         .sort(
             (a, b) =>
                 new Date(
@@ -160,29 +208,42 @@ function loadTasks() {
                 )
         )
         .forEach(task => {
+
             plannerList.appendChild(
-                createTaskElement(task)
+                createTaskElement(
+                    task
+                )
             );
         });
 }
 
 if (plannerForm) {
+
     plannerForm.addEventListener(
         "submit",
         function (event) {
+
             event.preventDefault();
 
             const subject =
-                document.getElementById("subject");
+                document.getElementById(
+                    "subject"
+                );
 
             const task =
-                document.getElementById("task");
+                document.getElementById(
+                    "task"
+                );
 
             const studyDate =
-                document.getElementById("studyDate");
+                document.getElementById(
+                    "studyDate"
+                );
 
             const studyTime =
-                document.getElementById("studyTime");
+                document.getElementById(
+                    "studyTime"
+                );
 
             if (
                 !subject ||
@@ -199,14 +260,25 @@ if (plannerForm) {
                 !studyDate.value ||
                 !studyTime.value
             ) {
+                alert(
+                    "Please fill in all fields."
+                );
                 return;
             }
 
             addTask({
-                subject: subject.value.trim(),
-                task: task.value.trim(),
-                study_date: studyDate.value,
-                study_time: studyTime.value
+
+                subject:
+                    subject.value.trim(),
+
+                task:
+                    task.value.trim(),
+
+                study_date:
+                    studyDate.value,
+
+                study_time:
+                    studyTime.value
             });
 
             plannerForm.reset();
