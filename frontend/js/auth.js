@@ -1,7 +1,9 @@
 /* =========================================================
    AI STUDY ASSISTANT
-   FRONTEND-ONLY AUTHENTICATION
+   BACKEND AUTHENTICATION
 ========================================================= */
+
+const API_URL = "http://localhost:8000";
 
 const registerForm =
     document.getElementById("registerForm");
@@ -18,7 +20,7 @@ if (registerForm) {
 
     registerForm.addEventListener(
         "submit",
-        function (event) {
+        async function (event) {
 
             event.preventDefault();
 
@@ -74,86 +76,76 @@ if (registerForm) {
             }
 
 
-            const users =
-                JSON.parse(
-                    localStorage.getItem("studyUsers") || "[]"
-                );
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_URL}/auth/register`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                name: fullName,
+                                email: email,
+                                password: password
+                            })
+                        }
+                    );
 
 
-            const existingUser =
-                users.find(
-                    function (user) {
-                        return user.email === email;
-                    }
-                );
+                const data =
+                    await response.json();
 
 
-            if (existingUser) {
+                if (!response.ok) {
+
+                    showMessage(
+                        message,
+                        data.detail || "Registration failed.",
+                        "error"
+                    );
+
+                    return;
+                }
+
 
                 showMessage(
                     message,
-                    "An account with this email already exists.",
-                    "error"
+                    "Registration successful.",
+                    "success"
                 );
 
-                return;
+
+                registerForm.reset();
+
+
+                setTimeout(
+                    function () {
+
+                        window.location.href =
+                            "login.html";
+
+                    },
+                    1200
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Registration error:",
+                    error
+                );
+
+                showMessage(
+                    message,
+                    "Unable to connect to the server.",
+                    "error"
+                );
             }
-
-
-            const newUser = {
-
-                id:
-                    Date.now(),
-
-                full_name:
-                    fullName,
-
-                email:
-                    email,
-
-                password:
-                    password
-            };
-
-
-            users.push(newUser);
-
-
-            localStorage.setItem(
-                "studyUsers",
-                JSON.stringify(users)
-            );
-
-
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    id: newUser.id,
-                    full_name: newUser.full_name,
-                    email: newUser.email
-                })
-            );
-
-
-            showMessage(
-                message,
-                "Registration successful.",
-                "success"
-            );
-
-
-            registerForm.reset();
-
-
-            setTimeout(
-                function () {
-
-                    window.location.href =
-                        "login.html";
-
-                },
-                1200
-            );
         }
     );
 }
@@ -167,7 +159,7 @@ if (loginForm) {
 
     loginForm.addEventListener(
         "submit",
-        function (event) {
+        async function (event) {
 
             event.preventDefault();
 
@@ -181,31 +173,11 @@ if (loginForm) {
                 document.getElementById("message");
 
 
-            const users =
-                JSON.parse(
-                    localStorage.getItem("studyUsers") || "[]"
-                );
-
-
-            const user =
-                users.find(
-                    function (item) {
-
-                        return (
-                            item.email === email
-                            &&
-                            item.password === password
-                        );
-
-                    }
-                );
-
-
-            if (!user) {
+            if (!email || !password) {
 
                 showMessage(
                     message,
-                    "Invalid email or password.",
+                    "Please enter email and password.",
                     "error"
                 );
 
@@ -213,48 +185,100 @@ if (loginForm) {
             }
 
 
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    id: user.id,
-                    full_name: user.full_name,
-                    email: user.email
-                })
-            );
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_URL}/auth/login`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                email: email,
+                                password: password
+                            })
+                        }
+                    );
 
 
-            localStorage.setItem(
-                "user_id",
-                String(user.id)
-            );
-
-            localStorage.setItem(
-                "user_name",
-                user.full_name
-            );
-
-            localStorage.setItem(
-                "user_email",
-                user.email
-            );
+                const data =
+                    await response.json();
 
 
-            showMessage(
-                message,
-                "Login successful.",
-                "success"
-            );
+                if (!response.ok) {
+
+                    showMessage(
+                        message,
+                        data.detail || "Invalid email or password.",
+                        "error"
+                    );
+
+                    return;
+                }
 
 
-            setTimeout(
-                function () {
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify({
+                        user_id: data.user_id,
+                        name: data.name,
+                        email: data.email
+                    })
+                );
 
-                    window.location.href =
-                        "dashboard.html";
 
-                },
-                700
-            );
+                localStorage.setItem(
+                    "user_id",
+                    String(data.user_id)
+                );
+
+
+                localStorage.setItem(
+                    "user_name",
+                    data.name
+                );
+
+
+                localStorage.setItem(
+                    "user_email",
+                    data.email
+                );
+
+
+                showMessage(
+                    message,
+                    "Login successful.",
+                    "success"
+                );
+
+
+                setTimeout(
+                    function () {
+
+                        window.location.href =
+                            "dashboard.html";
+
+                    },
+                    700
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Login error:",
+                    error
+                );
+
+                showMessage(
+                    message,
+                    "Unable to connect to the server.",
+                    "error"
+                );
+            }
         }
     );
 }

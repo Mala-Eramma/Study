@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://localhost:8000";
 
 const userData = localStorage.getItem("user");
 
@@ -7,7 +7,7 @@ if (!userData) {
 }
 
 const user = JSON.parse(userData);
-const userId = user.user_id;
+const userId = user.user.id;
 
 const taskCount = document.getElementById("taskCount");
 const quizScore = document.getElementById("quizScore");

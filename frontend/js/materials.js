@@ -15,8 +15,7 @@ const aiSummaryContent =
 const downloadSummaryButton =
     document.getElementById("downloadSummaryButton");
 
-const API_URL =
-    "http://127.0.0.1:8000";
+const API_URL = "http://localhost:8000";
 
 
 // =========================================
@@ -37,7 +36,7 @@ const user =
     JSON.parse(userData);
 
 const userId =
-    user.user_id;
+    user.user.id;
 
 
 // =========================================

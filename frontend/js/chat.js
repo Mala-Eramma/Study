@@ -16,8 +16,7 @@ const voiceStatus =
     document.getElementById("voiceStatus");
 
 
-const API_URL =
-    "http://127.0.0.1:8000";
+const API_URL = "http://localhost:8000";
 
 
 const userData =
@@ -31,7 +30,7 @@ const user =
     JSON.parse(userData);
 
 const userId =
-    user.user_id;
+    user.id;
 
 
 const SpeechRecognition =
@@ -281,8 +280,6 @@ chatForm.addEventListener(
 
             speakAnswer(answer);
 
-
-            // Subject remains for next question
 
             voiceStatus.textContent =
                 "Answer received.";

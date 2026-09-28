@@ -4,8 +4,7 @@ const plannerForm =
 const taskList =
     document.getElementById("taskList");
 
-const API_URL =
-    "http://127.0.0.1:8000";
+const API_URL = "http://localhost:8000";
 
 
 // Get logged-in student
@@ -23,7 +22,7 @@ const user =
     JSON.parse(userData);
 
 const userId =
-    user.user_id;
+    user.user.id;
 
 
 // Load study tasks
