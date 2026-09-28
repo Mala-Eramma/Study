@@ -1,1168 +1,1052 @@
-const chatForm = document.getElementById("chatForm");
-const subjectInput = document.getElementById("subjectInput");
-const chatInput = document.getElementById("chatInput");
-const chatMessages = document.getElementById("chatMessages");
-const voiceButton = document.getElementById("voiceButton");
-const voiceStatus = document.getElementById("voiceStatus");
+const USER_KEY = "user";
+const HISTORY_KEY = "study_assistant_chat_history";
+const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
 
-
-/* =========================================
-   USER
-========================================= */
-
-const userData =
-    localStorage.getItem("user");
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
 const user = JSON.parse(userData);
+const userId = user.user_id || user.id || user.email;
 
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const chatMessages = document.getElementById("chatMessages");
+const subjectInput = document.getElementById("subject");
+const micButton = document.getElementById("micButton");
 
-/* =========================================
-   GET USER ID
-========================================= */
 
-const userId =
-    user.user_id ||
-    user.id ||
-    (user.user && (
-        user.user.id ||
-        user.user.user_id
-    ));
-
-
-/* =========================================
-   HISTORY KEY
-========================================= */
-
-const HISTORY_KEY =
-    "study_assistant_chat_history";
-
-
-/* =========================================
-   VOICE RECOGNITION
-========================================= */
-
-const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-let recognition = null;
-
-if (SpeechRecognition) {
-
-    recognition =
-        new SpeechRecognition();
-
-    recognition.lang =
-        "en-US";
-
-    recognition.continuous =
-        false;
-
-    recognition.interimResults =
-        false;
-
-
-    recognition.onstart =
-        function () {
-
-            voiceButton.classList.add(
-                "listening"
-            );
-
-            voiceStatus.textContent = "";
-        };
-
-
-    recognition.onresult =
-        function (event) {
-
-            const transcript =
-                event.results[0][0]
-                    .transcript
-                    .trim();
-
-            chatInput.value =
-                transcript;
-
-            voiceStatus.textContent = "";
-
-            voiceButton.classList.remove(
-                "listening"
-            );
-
-            chatInput.focus();
-        };
-
-
-    recognition.onerror =
-        function (event) {
-
-            console.error(
-                "Speech recognition error:",
-                event.error
-            );
-
-            voiceStatus.textContent = "";
-
-            voiceButton.classList.remove(
-                "listening"
-            );
-        };
-
-
-    recognition.onend =
-        function () {
-
-            voiceButton.classList.remove(
-                "listening"
-            );
-
-            voiceStatus.textContent = "";
-        };
-
-} else {
-
-    voiceButton.disabled = true;
-
-    voiceStatus.textContent = "";
-}
-
-
-/* =========================================
-   MICROPHONE BUTTON
-========================================= */
-
-voiceButton.addEventListener(
-    "click",
-    function (event) {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (!recognition) {
-            return;
-        }
-
-        try {
-
-            recognition.start();
-
-        } catch (error) {
-
-            console.error(
-                "Microphone error:",
-                error
-            );
-        }
-    }
-);
-
-
-/* =========================================
-   ASK / CHAT
-========================================= */
-
-chatForm.addEventListener(
-    "submit",
-    function (event) {
-
-        event.preventDefault();
-
-
-        const subject =
-            subjectInput.value.trim();
-
-
-        const question =
-            chatInput.value.trim();
-
-
-        if (!subject) {
-
-            subjectInput.focus();
-
-            return;
-        }
-
-
-        if (!question) {
-
-            chatInput.focus();
-
-            return;
-        }
-
-
-        /* USER MESSAGE */
-
-        addMessage(
-            "You",
-            question,
-            "user-message"
-        );
-
-
-        chatInput.value = "";
-
-
-        /* GENERATE ANSWER */
-
-        const answer =
-            generateStudyAnswer(
-                subject,
-                question
-            );
-
-
-        /* AI MESSAGE */
-
-        addMessage(
-            "AI Assistant",
-            answer,
-            "ai-message"
-        );
-
-
-        /* SAVE HISTORY */
-
-        saveChatHistory(
-            subject,
-            question,
-            answer
-        );
-
-
-        /* SPEAK ANSWER */
-
-        speakAnswer(answer);
-
-
-        chatMessages.scrollTop =
-            chatMessages.scrollHeight;
-    }
-);
-
-
-/* =========================================
-   GENERATE STUDY ANSWER
-========================================= */
-
-function generateStudyAnswer(
-    subject,
-    question
-) {
-
-    const text =
-        question
-            .toLowerCase()
-            .trim();
-
-
-    const topic =
-        subject
-            .toLowerCase()
-            .trim();
-
-
-    /* =====================================
-       PYTHON
-    ===================================== */
-
-    if (
-        topic.includes("python")
-    ) {
-
-
-        if (
-            text.includes("string") ||
-            text.includes("strings")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A string is a sequence of characters used to store text.\n\n" +
-
-                "2. Simple explanation\n" +
-                "Strings can contain letters, numbers, spaces, and special characters.\n\n" +
-
-                "3. Example\n" +
-                "name = \"Eramma\"\n\n" +
-
-                "4. Important point\n" +
-                "Strings are written inside single quotes or double quotes."
-            );
-        }
-
-
-        if (
-            text.includes("variable") ||
-            text.includes("variables")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A variable is a name used to store a value.\n\n" +
-
-                "2. Simple explanation\n" +
-                "The value stored in a variable can be changed during program execution.\n\n" +
-
-                "3. Example\n" +
-                "name = \"Eramma\"\n" +
-                "age = 22"
-            );
-        }
-
-
-        if (
-            text.includes("list") ||
-            text.includes("lists")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A list is an ordered collection of multiple values.\n\n" +
-
-                "2. Simple explanation\n" +
-                "Lists can store different types of data and can be changed after creation.\n\n" +
-
-                "3. Example\n" +
-                "numbers = [10, 20, 30]\n\n" +
-
-                "4. Important point\n" +
-                "Lists use square brackets."
-            );
-        }
-
-
-        if (
-            text.includes("tuple") ||
-            text.includes("tuples")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A tuple is an ordered collection of values.\n\n" +
-
-                "2. Simple explanation\n" +
-                "A tuple cannot normally be changed after it is created.\n\n" +
-
-                "3. Example\n" +
-                "numbers = (10, 20, 30)\n\n" +
-
-                "4. Important point\n" +
-                "Tuples use parentheses."
-            );
-        }
-
-
-        if (
-            text.includes("dictionary") ||
-            text.includes("dictionaries")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A dictionary stores data as key-value pairs.\n\n" +
-
-                "2. Simple explanation\n" +
-                "Each key is used to access its corresponding value.\n\n" +
-
-                "3. Example\n" +
-                "student = {\"name\": \"Eramma\", \"age\": 22}\n\n" +
-
-                "4. Important point\n" +
-                "Dictionaries use curly braces."
-            );
-        }
-
-
-        if (
-            text.includes("function") ||
-            text.includes("functions")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A function is a reusable block of code that performs a specific task.\n\n" +
-
-                "2. Simple explanation\n" +
-                "Functions help divide a program into smaller and reusable parts.\n\n" +
-
-                "3. Example\n" +
-                "def greet():\n" +
-                "    print(\"Hello\")"
-            );
-        }
-
-
-        if (
-            text.includes("loop") ||
-            text.includes("loops") ||
-            text.includes("for loop") ||
-            text.includes("while loop")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A loop is used to execute a block of code repeatedly.\n\n" +
-
-                "2. Types\n" +
-                "Python mainly provides for loops and while loops.\n\n" +
-
-                "3. Example\n" +
-                "for i in range(5):\n" +
-                "    print(i)\n\n" +
-
-                "4. Use\n" +
-                "Loops are useful when the same operation must be performed multiple times."
-            );
-        }
-
-
-        if (
-            text.includes("if statement") ||
-            text.includes("conditional") ||
-            text.includes("condition")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "An if statement is used to execute code when a condition is true.\n\n" +
-
-                "2. Example\n" +
-                "age = 20\n\n" +
-                "if age >= 18:\n" +
-                "    print(\"Adult\")\n\n" +
-
-                "3. Use\n" +
-                "Conditional statements help a program make decisions."
-            );
-        }
-
-
-        if (
-            text.includes("class") ||
-            text.includes("classes") ||
-            text.includes("object") ||
-            text.includes("objects")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A class is a blueprint used to create objects.\n\n" +
-
-                "2. Simple explanation\n" +
-                "An object is an instance of a class.\n\n" +
-
-                "3. Example\n" +
-                "class Student:\n" +
-                "    pass\n\n" +
-
-                "4. Important point\n" +
-                "Classes are an important part of object-oriented programming."
-            );
-        }
-
-
-        if (
-            text.includes("inheritance")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "Inheritance allows one class to use properties and methods of another class.\n\n" +
-
-                "2. Simple explanation\n" +
-                "It helps reuse existing code.\n\n" +
-
-                "3. Example\n" +
-                "class Dog(Animal):\n" +
-                "    pass\n\n" +
-
-                "4. Important point\n" +
-                "The child class can inherit features from the parent class."
-            );
-        }
-
-
-        if (
-            text.includes("exception") ||
-            text.includes("try except") ||
-            text.includes("error handling")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "Exception handling is used to handle runtime errors safely.\n\n" +
-
-                "2. Main keywords\n" +
-                "Python uses try, except, else, and finally.\n\n" +
-
-                "3. Example\n" +
-                "try:\n" +
-                "    print(10 / 0)\n" +
-                "except ZeroDivisionError:\n" +
-                "    print(\"Cannot divide by zero\")"
-            );
-        }
-
-
-        if (
-            text.includes("operator") ||
-            text.includes("operators")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "Operators are symbols or keywords used to perform operations on values.\n\n" +
-
-                "2. Examples\n" +
-                "Arithmetic: +, -, *, /\n" +
-                "Comparison: ==, !=, >, <\n" +
-                "Logical: and, or, not\n\n" +
-
-                "3. Example\n" +
-                "result = 10 + 5"
-            );
-        }
-
-
-        if (
-            text.includes("input")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "The input() function is used to receive data from the user.\n\n" +
-
-                "2. Example\n" +
-                "name = input(\"Enter your name: \")\n\n" +
-
-                "3. Important point\n" +
-                "The value returned by input() is normally a string."
-            );
-        }
-
-
-        if (
-            text.includes("print")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "The print() function is used to display information on the screen.\n\n" +
-
-                "2. Example\n" +
-                "print(\"Hello World\")\n\n" +
-
-                "3. Use\n" +
-                "It is commonly used to display output and check program results."
-            );
-        }
-    }
-
-
-    /* =====================================
-       SQL
-    ===================================== */
-
-    if (
-        topic.includes("sql") ||
-        topic.includes("mysql")
-    ) {
-
-        if (
-            text.includes("select")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "SELECT is used to retrieve data from a database table.\n\n" +
-
-                "2. Example\n" +
-                "SELECT * FROM students;\n\n" +
-
-                "3. Explanation\n" +
-                "The query retrieves all columns from the students table."
-            );
-        }
-
-
-        if (
-            text.includes("insert")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "INSERT is used to add new records to a table.\n\n" +
-
-                "2. Example\n" +
-                "INSERT INTO students (name, age)\n" +
-                "VALUES ('Eramma', 22);"
-            );
-        }
-
-
-        if (
-            text.includes("update")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "UPDATE is used to modify existing records.\n\n" +
-
-                "2. Example\n" +
-                "UPDATE students\n" +
-                "SET age = 23\n" +
-                "WHERE name = 'Eramma';\n\n" +
-
-                "3. Important point\n" +
-                "Use WHERE carefully to avoid updating unwanted rows."
-            );
-        }
-
-
-        if (
-            text.includes("delete")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "DELETE is used to remove records from a table.\n\n" +
-
-                "2. Example\n" +
-                "DELETE FROM students\n" +
-                "WHERE id = 1;\n\n" +
-
-                "3. Important point\n" +
-                "The WHERE condition determines which rows are removed."
-            );
-        }
-
-
-        if (
-            text.includes("primary key")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A primary key uniquely identifies each record in a table.\n\n" +
-
-                "2. Important points\n" +
-                "A primary key must contain unique values.\n" +
-                "It cannot contain NULL values.\n\n" +
-
-                "3. Example\n" +
-                "student_id INT PRIMARY KEY"
-            );
-        }
-
-
-        if (
-            text.includes("foreign key")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A foreign key connects a column in one table to a primary key in another table.\n\n" +
-
-                "2. Use\n" +
-                "It helps establish relationships between tables.\n\n" +
-
-                "3. Example\n" +
-                "student_id INT REFERENCES students(id)"
-            );
-        }
-    }
-
-
-    /* =====================================
-       HTML
-    ===================================== */
-
-    if (
-        topic.includes("html")
-    ) {
-
-        if (
-            text.includes("tag") ||
-            text.includes("tags")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "An HTML tag defines the structure or meaning of content on a web page.\n\n" +
-
-                "2. Example\n" +
-                "<h1>Hello</h1>\n\n" +
-
-                "3. Explanation\n" +
-                "The h1 tag is commonly used for a main heading."
-            );
-        }
-
-
-        if (
-            text.includes("form")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "An HTML form is used to collect information from users.\n\n" +
-
-                "2. Common elements\n" +
-                "input, label, textarea, select, and button.\n\n" +
-
-                "3. Example\n" +
-                "<form>\n" +
-                "    <input type=\"text\">\n" +
-                "</form>"
-            );
-        }
-
-
-        if (
-            text.includes("link") ||
-            text.includes("anchor")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "The anchor tag is used to create links in HTML.\n\n" +
-
-                "2. Example\n" +
-                "<a href=\"https://example.com\">Visit</a>\n\n" +
-
-                "3. Important attribute\n" +
-                "The href attribute specifies the destination."
-            );
-        }
-    }
-
-
-    /* =====================================
-       CSS
-    ===================================== */
-
-    if (
-        topic.includes("css")
-    ) {
-
-        if (
-            text.includes("flexbox") ||
-            text.includes("flex")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "Flexbox is a CSS layout system used to arrange elements in rows or columns.\n\n" +
-
-                "2. Example\n" +
-                "display: flex;\n\n" +
-
-                "3. Common properties\n" +
-                "justify-content controls the main-axis alignment.\n" +
-                "align-items controls the cross-axis alignment."
-            );
-        }
-
-
-        if (
-            text.includes("grid")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "CSS Grid is a layout system for arranging elements in rows and columns.\n\n" +
-
-                "2. Example\n" +
-                "display: grid;\n" +
-                "grid-template-columns: 1fr 1fr;\n\n" +
-
-                "3. Use\n" +
-                "Grid is useful for two-dimensional layouts."
-            );
-        }
-
-
-        if (
-            text.includes("media query") ||
-            text.includes("media queries") ||
-            text.includes("responsive")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A media query allows CSS styles to change based on screen or device conditions.\n\n" +
-
-                "2. Example\n" +
-                "@media (max-width: 600px) {\n" +
-                "    body {\n" +
-                "        background: lightblue;\n" +
-                "    }\n" +
-                "}\n\n" +
-
-                "3. Use\n" +
-                "Media queries are commonly used to create responsive websites."
-            );
-        }
-    }
-
-
-    /* =====================================
-       JAVASCRIPT
-    ===================================== */
-
-    if (
-        topic.includes("javascript") ||
-        topic === "js"
-    ) {
-
-        if (
-            text.includes("variable") ||
-            text.includes("variables")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A JavaScript variable stores a value that can be used in a program.\n\n" +
-
-                "2. Keywords\n" +
-                "JavaScript commonly uses let, const, and var.\n\n" +
-
-                "3. Example\n" +
-                "let name = \"Eramma\";"
-            );
-        }
-
-
-        if (
-            text.includes("function") ||
-            text.includes("functions")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "A JavaScript function is a reusable block of code.\n\n" +
-
-                "2. Example\n" +
-                "function greet() {\n" +
-                "    console.log(\"Hello\");\n" +
-                "}\n\n" +
-
-                "3. Use\n" +
-                "Functions help organize and reuse JavaScript code."
-            );
-        }
-
-
-        if (
-            text.includes("array") ||
-            text.includes("arrays")
-        ) {
-
-            return (
-                "1. Definition\n" +
-                "An array stores multiple values in a single variable.\n\n" +
-
-                "2. Example\n" +
-                "let numbers = [10, 20, 30];\n\n" +
-
-                "3. Important point\n" +
-                "Array elements are accessed using indexes."
-            );
-        }
-    }
-
-
-    /* =====================================
-       GENERAL STUDY QUESTIONS
-    ===================================== */
-
-    if (
-        text.includes("definition")
-    ) {
-
-        return (
-            "1. Definition\n" +
-            "The question asks about the meaning or definition of " +
-            subject + ".\n\n" +
-
-            "2. Explanation\n" +
-            "A definition explains what a concept is and what it is used for.\n\n" +
-
-            "3. Study tip\n" +
-            "Learn the meaning first, then understand it with a simple example."
-        );
-    }
-
-
-    if (
-        text.includes("example") ||
-        text.includes("give an example")
-    ) {
-
-        return (
-            "1. Explanation\n" +
-            "An example shows how a concept is used in a real situation or program.\n\n" +
-
-            "2. How to study\n" +
-            "First understand the concept, then connect it with a small example.\n\n" +
-
-            "3. Your topic\n" +
-            subject
-        );
-    }
-
-
-    if (
-        text.includes("difference between") ||
-        text.includes("difference")
-    ) {
-
-        return (
-            "1. Meaning\n" +
-            "A difference question asks you to compare two or more concepts.\n\n" +
-
-            "2. How to compare\n" +
-            "Compare their definition, purpose, syntax, features, and usage.\n\n" +
-
-            "3. Your question\n" +
-            question
-        );
-    }
-
-
-    if (
-        text.includes("what is") ||
-        text.startsWith("define ") ||
-        text.startsWith("explain ")
-    ) {
-
-        return (
-            "1. Meaning\n" +
-            "This is a concept-based question from " +
-            subject + ".\n\n" +
-
-            "2. Explanation\n" +
-            "The concept should be understood by its definition, purpose, and practical usage.\n\n" +
-
-            "3. Question asked\n" +
-            question + "\n\n" +
-
-            "4. Study tip\n" +
-            "Connect the definition with one simple example to remember it easily."
-        );
-    }
-
-
-    /* =====================================
-       DEFAULT
-    ===================================== */
-
-    return (
-        "1. Your question\n" +
-        question + "\n\n" +
-
-        "2. Topic\n" +
-        subject + "\n\n" +
-
-        "3. Explanation\n" +
-        "This question is related to " +
-        subject +
-        ". Break the topic into definition, purpose, and example to understand it clearly."
-    );
-}
-
-
-/* =========================================
-   SAVE CHAT HISTORY
-========================================= */
-
-function saveChatHistory(
-    subject,
-    question,
-    answer
-) {
-
-    try {
-
-        let history = [];
-
-        try {
-
-            history =
-                JSON.parse(
-                    localStorage.getItem(
-                        HISTORY_KEY
-                    ) || "[]"
-                );
-
-        } catch (error) {
-
-            history = [];
-        }
-
-
-        if (!Array.isArray(history)) {
-
-            history = [];
-        }
-
-
-        const historyItem = {
-
-            id:
-                Date.now().toString(),
-
-            user_id:
-                userId,
-
-            subject:
-                subject,
-
-            question:
-                question,
-
-            answer:
-                answer,
-
-            created_at:
-                Date.now()
-        };
-
-
-        history.push(
-            historyItem
-        );
-
-
-        localStorage.setItem(
-            HISTORY_KEY,
-            JSON.stringify(
-                history
-            )
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Unable to save chat history:",
-            error
-        );
-    }
-}
-
-
-/* =========================================
-   ADD MESSAGE
-========================================= */
-
-function addMessage(
-    sender,
-    text,
-    messageClass
-) {
-
-    const message =
-        document.createElement(
-            "div"
-        );
-
+function addMessage(text, sender) {
+    const message = document.createElement("div");
 
     message.className =
-        `message ${messageClass}`;
+        sender === "user"
+            ? "message user-message"
+            : "message ai-message";
 
+    message.textContent = text;
 
-    const title =
-        document.createElement(
-            "strong"
-        );
-
-
-    title.textContent =
-        sender;
-
-
-    const paragraph =
-        document.createElement(
-            "p"
-        );
-
-
-    paragraph.textContent =
-        text;
-
-
-    message.appendChild(
-        title
-    );
-
-
-    message.appendChild(
-        paragraph
-    );
-
-
-    chatMessages.appendChild(
-        message
-    );
-
-
-    chatMessages.scrollTop =
-        chatMessages.scrollHeight;
-
-
-    return paragraph;
+    chatMessages.appendChild(message);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 
-/* =========================================
-   SPEAK AI ANSWER
-========================================= */
+function saveChatHistory(question, answer) {
+    let history = [];
 
-function speakAnswer(
-    answer
-) {
+    try {
+        history = JSON.parse(
+            localStorage.getItem(HISTORY_KEY) || "[]"
+        );
+    } catch {
+        history = [];
+    }
 
-    if (
-        !(
-            "speechSynthesis"
-            in window
-        )
-    ) {
+    if (!Array.isArray(history)) {
+        history = [];
+    }
 
+    history.push({
+        user_id: userId,
+        question: question,
+        answer: answer,
+        date: new Date().toISOString()
+    });
+
+    localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(history)
+    );
+}
+
+
+function saveChatTopic(question) {
+    let topics = [];
+
+    try {
+        topics = JSON.parse(
+            localStorage.getItem(CHAT_TOPICS_KEY) || "[]"
+        );
+    } catch {
+        topics = [];
+    }
+
+    if (!Array.isArray(topics)) {
+        topics = [];
+    }
+
+    topics.push({
+        user_id: userId,
+        topic: question,
+        date: new Date().toISOString()
+    });
+
+    localStorage.setItem(
+        CHAT_TOPICS_KEY,
+        JSON.stringify(topics)
+    );
+}
+
+
+function speakAnswer(text) {
+    if (!("speechSynthesis" in window)) {
         return;
     }
 
-
     window.speechSynthesis.cancel();
 
+    const speech = new SpeechSynthesisUtterance(text);
 
-    const speech =
-        new SpeechSynthesisUtterance(
-            answer
+    speech.lang = "en-US";
+    speech.rate = 0.85;
+    speech.pitch = 1;
+
+    window.speechSynthesis.speak(speech);
+}
+
+
+/* ---------------- PYTHON ---------------- */
+
+function pythonAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("string") ||
+        q.includes("strings")
+    ) {
+        return `1. A string is a sequence of characters written inside quotes.
+
+2. Python supports single quotes and double quotes.
+
+3. Example:
+name = "Eramma"
+
+4. Strings are commonly used to store names, messages, and text.
+
+5. You can access individual characters using indexing.
+
+Example:
+name[0]
+
+This returns the first character.`;
+    }
+
+    if (
+        q.includes("variable") ||
+        q.includes("variables")
+    ) {
+        return `1. A variable is a name used to store a value.
+
+2. Python does not require you to declare the data type separately.
+
+3. Example:
+age = 21
+
+4. Here, age is the variable and 21 is its value.
+
+5. The value stored in a variable can be changed later.`;
+    }
+
+    if (
+        q.includes("list") ||
+        q.includes("lists")
+    ) {
+        return `1. A list is an ordered collection of items.
+
+2. Lists are written using square brackets.
+
+Example:
+numbers = [10, 20, 30]
+
+3. Lists can contain different data types.
+
+4. Lists are mutable, which means their contents can be changed.
+
+5. You can add, remove, or modify items in a list.`;
+    }
+
+    if (
+        q.includes("tuple") ||
+        q.includes("tuples")
+    ) {
+        return `1. A tuple is an ordered collection of items.
+
+2. Tuples are usually written using parentheses.
+
+Example:
+data = (10, 20, 30)
+
+3. Tuples are immutable.
+
+4. This means their elements cannot normally be changed after creation.
+
+5. Tuples are useful when the data should remain unchanged.`;
+    }
+
+    if (
+        q.includes("dictionary") ||
+        q.includes("dictionaries")
+    ) {
+        return `1. A dictionary stores data as key-value pairs.
+
+2. Dictionaries are written using curly braces.
+
+Example:
+student = {"name": "Ravi", "age": 21}
+
+3. The key is used to access its corresponding value.
+
+4. Dictionaries are useful for representing structured information.
+
+5. Values can be changed, added, or removed.`;
+    }
+
+    if (
+        q.includes("function") ||
+        q.includes("functions")
+    ) {
+        return `1. A function is a reusable block of code.
+
+2. Functions are created using the def keyword.
+
+Example:
+
+def add(a, b):
+    return a + b
+
+3. Functions help avoid repeating the same code.
+
+4. They can accept parameters.
+
+5. They can return a result using return.`;
+    }
+
+    if (
+        q.includes("loop") ||
+        q.includes("loops") ||
+        q.includes("for loop") ||
+        q.includes("while loop")
+    ) {
+        return `1. A loop is used to execute a block of code repeatedly.
+
+2. Python mainly provides for loops and while loops.
+
+3. A for loop is commonly used when iterating through a sequence.
+
+Example:
+
+for i in range(5):
+    print(i)
+
+4. A while loop continues while its condition is true.
+
+5. Loops reduce repeated code.`;
+    }
+
+    if (
+        q.includes("inheritance")
+    ) {
+        return `1. Inheritance allows one class to acquire properties and methods from another class.
+
+2. The existing class is called the parent class.
+
+3. The new class is called the child class.
+
+Example:
+
+class Animal:
+    def speak(self):
+        print("Animal sound")
+
+class Dog(Animal):
+    pass
+
+4. Dog inherits the speak() method from Animal.
+
+5. Inheritance improves code reuse.`;
+    }
+
+    if (
+        q.includes("class")
+    ) {
+        return `1. A class is a blueprint for creating objects.
+
+2. It can contain attributes and methods.
+
+Example:
+
+class Student:
+    def study(self):
+        print("Studying")
+
+3. The class describes what an object can contain and do.
+
+4. Objects are created from classes.`;
+    }
+
+    if (
+        q.includes("object")
+    ) {
+        return `1. An object is an instance of a class.
+
+2. A class defines the structure and behavior.
+
+3. The object is the actual entity created from that class.
+
+Example:
+
+student1 = Student()
+
+4. Here, student1 is an object of the Student class.`;
+    }
+
+    if (
+        q.includes("exception") ||
+        q.includes("error handling")
+    ) {
+        return `1. Exception handling is used to handle errors that occur while a program is running.
+
+2. Python commonly uses try, except, else, and finally.
+
+Example:
+
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Cannot divide by zero")
+
+3. It prevents the program from stopping unexpectedly.
+
+4. It also allows you to provide a meaningful response when an error occurs.`;
+    }
+
+    if (
+        q.includes("operator") ||
+        q.includes("operators")
+    ) {
+        return `1. Operators are symbols used to perform operations on values.
+
+2. Arithmetic operators perform calculations.
+
+Examples:
++
+-
+*
+/
+%
+
+3. Comparison operators compare values.
+
+Examples:
+>
+<
+==
+!=
+
+4. Logical operators combine conditions.
+
+Examples:
+and
+or
+not`;
+    }
+
+    if (
+        q.includes("input")
+    ) {
+        return `1. The input() function is used to receive information from the user.
+
+Example:
+
+name = input("Enter your name: ")
+
+2. The entered value is normally returned as a string.
+
+3. You can convert it to another type when required.
+
+Example:
+
+age = int(input("Enter age: "))`;
+    }
+
+    if (
+        q.includes("print")
+    ) {
+        return `1. The print() function displays information on the screen.
+
+Example:
+
+print("Hello")
+
+2. It can display variables.
+
+Example:
+
+name = "Ravi"
+print(name)
+
+3. It can also display multiple values.
+
+Example:
+
+print("Age:", 21)`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- SQL ---------------- */
+
+function sqlAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("select") ||
+        q.includes("retrieve")
+    ) {
+        return `1. SELECT is used to retrieve data from a database table.
+
+Example:
+
+SELECT * FROM students;
+
+2. The * means all columns.
+
+3. You can select specific columns.
+
+Example:
+
+SELECT name, age
+FROM students;
+
+4. WHERE can be used to filter records.`;
+    }
+
+    if (q.includes("insert")) {
+        return `1. INSERT is used to add new records to a table.
+
+Example:
+
+INSERT INTO students
+(name, age)
+VALUES
+("Ravi", 21);
+
+2. The column names identify where the values should be stored.
+
+3. INSERT adds a new row to the table.`;
+    }
+
+    if (q.includes("update")) {
+        return `1. UPDATE is used to modify existing records.
+
+Example:
+
+UPDATE students
+SET age = 22
+WHERE name = "Ravi";
+
+2. SET specifies the new value.
+
+3. WHERE identifies which records should be changed.
+
+4. Without an appropriate WHERE condition, multiple rows may be modified.`;
+    }
+
+    if (q.includes("delete")) {
+        return `1. DELETE is used to remove records from a table.
+
+Example:
+
+DELETE FROM students
+WHERE id = 5;
+
+2. WHERE identifies the record to remove.
+
+3. Without WHERE, all records in the table can be deleted.`;
+    }
+
+    if (q.includes("primary key")) {
+        return `1. A primary key uniquely identifies each record in a table.
+
+2. Each primary-key value must be unique.
+
+3. A primary key cannot contain NULL values.
+
+4. Example:
+
+CREATE TABLE students (
+    id INT PRIMARY KEY,
+    name VARCHAR(50)
+);
+
+5. Here, id uniquely identifies each student.`;
+    }
+
+    if (q.includes("foreign key")) {
+        return `1. A foreign key creates a relationship between tables.
+
+2. It usually refers to the primary key of another table.
+
+3. It helps maintain relationships between related records.
+
+4. Example:
+
+student_id INT,
+FOREIGN KEY (student_id)
+REFERENCES students(id)
+
+5. This connects the student_id value with the students table.`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- HTML ---------------- */
+
+function htmlAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("anchor") ||
+        q.includes("link") ||
+        q.includes("href")
+    ) {
+        return `1. The HTML anchor tag is used to create a hyperlink.
+
+2. The anchor tag is written using <a>.
+
+3. The href attribute specifies the destination.
+
+Example:
+
+<a href="https://example.com">
+    Visit Website
+</a>
+
+4. When the user clicks the link, the browser opens the specified destination.
+
+5. Anchor tags can also link to another page, section, email address, or file.`;
+    }
+
+    if (
+        q.includes("form") ||
+        q.includes("forms")
+    ) {
+        return `1. The HTML form element is used to collect user input.
+
+2. Forms can contain inputs, labels, buttons, and other controls.
+
+Example:
+
+<form>
+    <label>Name:</label>
+    <input type="text">
+    <button type="submit">Submit</button>
+</form>
+
+3. Forms are commonly used for login, registration, search, and data collection.`;
+    }
+
+    if (
+        q.includes("tag") ||
+        q.includes("tags")
+    ) {
+        return `1. HTML tags define the structure and meaning of webpage content.
+
+2. Examples include:
+
+<h1> for headings
+<p> for paragraphs
+<a> for links
+<img> for images
+<table> for tables
+
+3. Most HTML elements have an opening tag and a closing tag.
+
+4. Some elements, such as img, do not require a closing tag.`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- CSS ---------------- */
+
+function cssAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("media quer") ||
+        q.includes("responsive")
+    ) {
+        return `1. CSS media queries are used to apply different styles depending on screen or device conditions.
+
+2. They are commonly used for responsive web design.
+
+Example:
+
+@media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+}
+
+3. The styles inside the media query apply when the screen width is 600px or less.
+
+4. Media queries help webpages work on desktops, tablets, and mobile devices.`;
+    }
+
+    if (
+        q.includes("flexbox") ||
+        q.includes("flex")
+    ) {
+        return `1. Flexbox is a CSS layout system.
+
+2. It is mainly used to arrange elements in a row or column.
+
+3. Example:
+
+.container {
+    display: flex;
+}
+
+4. justify-content controls alignment along the main axis.
+
+5. align-items controls alignment along the cross axis.
+
+6. Flexbox is useful for navigation bars, cards, and centered layouts.`;
+    }
+
+    if (
+        q.includes("grid")
+    ) {
+        return `1. CSS Grid is a layout system designed for rows and columns.
+
+2. Example:
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+3. Grid is useful when you need two-dimensional layouts.
+
+4. It is commonly used for page layouts, galleries, and card sections.`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- JAVASCRIPT ---------------- */
+
+function javascriptAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("variable") ||
+        q.includes("let") ||
+        q.includes("const") ||
+        q.includes("var")
+    ) {
+        return `1. JavaScript variables store values.
+
+2. let is used when the value may change.
+
+Example:
+
+let age = 21;
+
+3. const is used when the variable should not be reassigned.
+
+Example:
+
+const pi = 3.14;
+
+4. var is the older variable declaration keyword and is generally avoided in modern JavaScript when let or const is suitable.`;
+    }
+
+    if (
+        q.includes("function") ||
+        q.includes("functions")
+    ) {
+        return `1. A JavaScript function is a reusable block of code.
+
+Example:
+
+function add(a, b) {
+    return a + b;
+}
+
+2. Functions can receive parameters.
+
+3. They can return a result.
+
+4. Functions help organize code and avoid repetition.`;
+    }
+
+    if (
+        q.includes("array") ||
+        q.includes("arrays")
+    ) {
+        return `1. An array stores multiple values in a single variable.
+
+Example:
+
+let numbers = [10, 20, 30];
+
+2. Array indexing starts from 0.
+
+3. numbers[0] returns 10.
+
+4. JavaScript arrays can contain different types of values.
+
+5. Common methods include push(), pop(), shift(), and unshift().`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- OOPS ---------------- */
+
+function oopsAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("encapsulation")
+    ) {
+        return `1. Encapsulation means combining data and the methods that operate on that data inside a class.
+
+2. It also involves controlling access to the internal data.
+
+3. In Python, naming conventions and properties can be used to control access.
+
+4. Encapsulation helps protect data and keeps the implementation organized.`;
+    }
+
+    if (
+        q.includes("polymorphism")
+    ) {
+        return `1. Polymorphism means that the same interface or method name can behave differently for different objects.
+
+2. Different classes can provide their own implementation of the same method.
+
+Example:
+
+class Dog:
+    def sound(self):
+        print("Bark")
+
+class Cat:
+    def sound(self):
+        print("Meow")
+
+3. Both objects provide sound(), but their behavior is different.`;
+    }
+
+    if (
+        q.includes("abstraction")
+    ) {
+        return `1. Abstraction means hiding unnecessary implementation details and exposing only the important functionality.
+
+2. It helps reduce complexity.
+
+3. In Python, abstraction can be implemented using abstract base classes.
+
+4. The user of a class can focus on what an operation does rather than how it is internally implemented.`;
+    }
+
+    return null;
+}
+
+
+/* ---------------- GENERAL QUESTIONS ---------------- */
+
+function generalAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    if (
+        q.includes("what is") ||
+        q.includes("define") ||
+        q.includes("meaning of") ||
+        q.startsWith("explain")
+    ) {
+        const cleanedQuestion = question
+            .replace(/what is/gi, "")
+            .replace(/define/gi, "")
+            .replace(/meaning of/gi, "")
+            .replace(/explain/gi, "")
+            .trim();
+
+        return `1. ${cleanedQuestion} is a concept or topic that should be understood based on its definition and use.
+
+2. To understand it correctly, focus on what it means, how it works, and where it is used.
+
+3. Example:
+Study the definition first, then look at a simple real-world or programming example.
+
+4. If you want a more specific explanation, ask about its definition, working, advantages, disadvantages, or example.`;
+    }
+
+    if (
+        q.includes("difference between") ||
+        q.includes("difference of") ||
+        q.includes(" vs ")
+    ) {
+        return `1. The two concepts are related but are used for different purposes.
+
+2. The first concept should be understood by its definition and main use.
+
+3. The second concept should be understood in the same way.
+
+4. The important difference depends on their purpose, behavior, and usage.
+
+5. Give me the two exact concepts if you want a direct point-by-point comparison.`;
+    }
+
+    if (
+        q.startsWith("why") ||
+        q.includes("why do we")
+    ) {
+        return `1. The reason depends on the purpose of the concept you are asking about.
+
+2. In programming, a feature is usually introduced to make code easier to write, reuse, maintain, maintain, or understand.
+
+3. Its exact benefit depends on the specific topic.
+
+4. The best way to understand it is to connect the feature with a simple example.`;
+    }
+
+    if (
+        q.startsWith("how")
+    ) {
+        return `1. First identify the goal of the task.
+
+2. Then divide the task into smaller steps.
+
+3. Apply the appropriate concept or syntax.
+
+4. Test the result with a simple example.
+
+5. If you tell me the exact topic, I can explain the steps specifically for it.`;
+    }
+
+    return `I can answer study questions about Python, HTML, CSS, JavaScript, SQL, OOP, and other academic topics.
+
+Please include the exact topic or concept in your question so I can give you a relevant explanation.`;
+}
+
+
+/* ---------------- MAIN ANSWER ENGINE ---------------- */
+
+function generateStudyAnswer(question) {
+
+    const q = question.toLowerCase();
+
+    let answer = null;
+
+    if (
+        q.includes("python") ||
+        q.includes("string") ||
+        q.includes("variable") ||
+        q.includes("list") ||
+        q.includes("tuple") ||
+        q.includes("dictionary") ||
+        q.includes("function") ||
+        q.includes("loop") ||
+        q.includes("inheritance") ||
+        q.includes("class") ||
+        q.includes("object") ||
+        q.includes("exception") ||
+        q.includes("operator") ||
+        q.includes("input") ||
+        q.includes("print")
+    ) {
+        answer = pythonAnswer(question);
+    }
+
+    if (!answer && (
+        q.includes("sql") ||
+        q.includes("mysql") ||
+        q.includes("primary key") ||
+        q.includes("foreign key") ||
+        q.includes("select") ||
+        q.includes("insert") ||
+        q.includes("update") ||
+        q.includes("delete")
+    )) {
+        answer = sqlAnswer(question);
+    }
+
+    if (!answer && (
+        q.includes("html") ||
+        q.includes("anchor") ||
+        q.includes("href") ||
+        q.includes("form") ||
+        q.includes("tag")
+    )) {
+        answer = htmlAnswer(question);
+    }
+
+    if (!answer && (
+        q.includes("css") ||
+        q.includes("media query") ||
+        q.includes("responsive") ||
+        q.includes("flexbox") ||
+        q.includes("grid")
+    )) {
+        answer = cssAnswer(question);
+    }
+
+    if (!answer && (
+        q.includes("javascript") ||
+        q.includes("array") ||
+        q.includes("let") ||
+        q.includes("const")
+    )) {
+        answer = javascriptAnswer(question);
+    }
+
+    if (!answer && (
+        q.includes("oops") ||
+        q.includes("encapsulation") ||
+        q.includes("polymorphism") ||
+        q.includes("abstraction")
+    )) {
+        answer = oopsAnswer(question);
+    }
+
+    if (!answer) {
+        answer = generalAnswer(question);
+    }
+
+    return answer;
+}
+
+
+/* ---------------- ASK QUESTION ---------------- */
+
+chatForm.addEventListener("submit", function (event) {
+
+    event.preventDefault();
+
+    const question = chatInput.value.trim();
+
+    if (!question) {
+        return;
+    }
+
+    addMessage(question, "user");
+
+    chatInput.value = "";
+
+    const answer = generateStudyAnswer(question);
+
+    addMessage(answer, "ai");
+
+    saveChatHistory(question, answer);
+    saveChatTopic(question);
+
+    speakAnswer(answer);
+});
+
+
+/* ---------------- VOICE INPUT ---------------- */
+
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    micButton.addEventListener("click", function () {
+
+        recognition.start();
+
+    });
+
+    recognition.onresult = function (event) {
+
+        const transcript =
+            event.results[0][0].transcript;
+
+        chatInput.value = transcript;
+
+    };
+
+    recognition.onerror = function (event) {
+
+        console.error(
+            "Speech recognition error:",
+            event.error
         );
 
+    };
 
-    speech.lang =
-        "en-US";
+} else {
 
+    if (micButton) {
+        micButton.disabled = true;
+    }
 
-    speech.rate =
-        0.9;
-
-
-    speech.pitch =
-        1;
-
-
-    window.speechSynthesis.speak(
-        speech
-    );
 }
+
+
+/* ---------------- LOAD HISTORY ---------------- */
+
+function loadChatHistory() {
+
+    let history = [];
+
+    try {
+        history = JSON.parse(
+            localStorage.getItem(HISTORY_KEY) || "[]"
+        );
+    } catch {
+        history = [];
+    }
+
+    if (!Array.isArray(history)) {
+        return;
+    }
+
+    const userHistory = history.filter(item =>
+        String(item.user_id) === String(userId)
+    );
+
+    userHistory.forEach(item => {
+
+        addMessage(
+            item.question,
+            "user"
+        );
+
+        addMessage(
+            item.answer,
+            "ai"
+        );
+
+    });
+}
+
+
+loadChatHistory();
