@@ -1,254 +1,217 @@
+const PLANNER_KEY = "study_assistant_planner";
+const USER_KEY = "user";
+
 const plannerForm =
     document.getElementById("plannerForm");
 
-const taskList =
-    document.getElementById("taskList");
+const plannerList =
+    document.getElementById("plannerList");
 
-const API_URL = "http://localhost:8000";
-
-
-// Get logged-in student
-const userData =
-    localStorage.getItem("user");
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
-
-    window.location.href =
-        "login.html";
-
+    window.location.href = "login.html";
 }
 
-const user =
-    JSON.parse(userData);
+const user = JSON.parse(userData);
 
-const userId =
-    user.user.id;
+const userId = user.user_id;
 
+function getPlannerTasks() {
+    const tasks = JSON.parse(
+        localStorage.getItem(PLANNER_KEY) || "[]"
+    );
 
-// Load study tasks
-async function loadTasks() {
-
-    try {
-
-        const response = await fetch(
-            `${API_URL}/planner/?user_id=${userId}`
-        );
-
-        const tasks =
-            await response.json();
-
-        taskList.innerHTML = "";
-
-        if (tasks.length === 0) {
-
-            taskList.innerHTML = `
-                <div class="empty-tasks">
-                    <p>
-                        No study tasks added yet.
-                    </p>
-                </div>
-            `;
-
-            return;
-        }
-
-        tasks.forEach(function (task) {
-
-            addTaskToPage(task);
-
-        });
-
-    } catch (error) {
-
-        console.error(error);
-
-    }
-
+    return tasks.filter(
+        task => String(task.user_id) === String(userId)
+    );
 }
 
+function savePlannerTasks(tasks) {
+    const allTasks = JSON.parse(
+        localStorage.getItem(PLANNER_KEY) || "[]"
+    );
 
-// Display task
-function addTaskToPage(task) {
+    const otherUsersTasks = allTasks.filter(
+        task => String(task.user_id) !== String(userId)
+    );
 
-    const taskItem =
+    localStorage.setItem(
+        PLANNER_KEY,
+        JSON.stringify([
+            ...otherUsersTasks,
+            ...tasks
+        ])
+    );
+}
+
+function addTask(taskData) {
+    const tasks = getPlannerTasks();
+
+    const newTask = {
+        id: Date.now(),
+        user_id: userId,
+        subject: taskData.subject,
+        task: taskData.task,
+        study_date: taskData.study_date,
+        study_time: taskData.study_time
+    };
+
+    tasks.push(newTask);
+
+    savePlannerTasks(tasks);
+
+    loadTasks();
+}
+
+function deleteTask(taskId) {
+    const tasks = getPlannerTasks();
+
+    const updatedTasks = tasks.filter(
+        task => String(task.id) !== String(taskId)
+    );
+
+    savePlannerTasks(updatedTasks);
+
+    loadTasks();
+}
+
+function createTaskElement(task) {
+    const item =
         document.createElement("div");
 
-    taskItem.className =
-        "study-task";
+    item.className = "planner-task";
 
-    const taskContent =
-        document.createElement("div");
-
-    const heading =
+    const subject =
         document.createElement("h3");
 
-    heading.textContent =
+    subject.textContent =
         task.subject;
 
     const taskText =
         document.createElement("p");
 
     taskText.textContent =
-        `Task: ${task.task}`;
+        task.task;
 
-    const dateText =
+    const date =
         document.createElement("p");
 
-    dateText.textContent =
+    date.textContent =
         `Date: ${task.study_date}`;
 
-    const timeText =
+    const time =
         document.createElement("p");
 
-    timeText.textContent =
+    time.textContent =
         `Time: ${task.study_time}`;
-
-    taskContent.appendChild(heading);
-    taskContent.appendChild(taskText);
-    taskContent.appendChild(dateText);
-    taskContent.appendChild(timeText);
 
     const deleteButton =
         document.createElement("button");
-
-    deleteButton.type =
-        "button";
-
-    deleteButton.className =
-        "delete-task";
 
     deleteButton.textContent =
         "Delete";
 
     deleteButton.addEventListener(
         "click",
-        async function () {
-
-            await deleteTask(task.id);
-
+        function () {
+            deleteTask(task.id);
         }
     );
 
-    taskItem.appendChild(taskContent);
-    taskItem.appendChild(deleteButton);
+    item.appendChild(subject);
+    item.appendChild(taskText);
+    item.appendChild(date);
+    item.appendChild(time);
+    item.appendChild(deleteButton);
 
-    taskList.appendChild(taskItem);
-
+    return item;
 }
 
-
-// Delete task
-async function deleteTask(taskId) {
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_URL}/planner/${taskId}?user_id=${userId}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-        if (!response.ok) {
-
-            return;
-
-        }
-
-        loadTasks();
-
-    } catch (error) {
-
-        console.error(error);
-
+function loadTasks() {
+    if (!plannerList) {
+        return;
     }
 
+    plannerList.innerHTML = "";
+
+    const tasks = getPlannerTasks();
+
+    if (tasks.length === 0) {
+        const message =
+            document.createElement("p");
+
+        message.textContent =
+            "No study tasks available.";
+
+        plannerList.appendChild(message);
+
+        return;
+    }
+
+    tasks
+        .sort(
+            (a, b) =>
+                new Date(
+                    `${a.study_date}T${a.study_time}`
+                ) -
+                new Date(
+                    `${b.study_date}T${b.study_time}`
+                )
+        )
+        .forEach(task => {
+            plannerList.appendChild(
+                createTaskElement(task)
+            );
+        });
 }
 
+if (plannerForm) {
+    plannerForm.addEventListener(
+        "submit",
+        function (event) {
+            event.preventDefault();
 
-// Add task
-plannerForm.addEventListener(
-    "submit",
-    async function (event) {
+            const subject =
+                document.getElementById("subject");
 
-        event.preventDefault();
+            const task =
+                document.getElementById("task");
 
-        const subject =
-            document.getElementById("subject")
-                .value.trim();
+            const studyDate =
+                document.getElementById("studyDate");
 
-        const task =
-            document.getElementById("task")
-                .value.trim();
+            const studyTime =
+                document.getElementById("studyTime");
 
-        const studyDate =
-            document.getElementById("studyDate")
-                .value;
-
-        const studyTime =
-            document.getElementById("studyTime")
-                .value;
-
-        if (
-            !subject ||
-            !task ||
-            !studyDate ||
-            !studyTime
-        ) {
-
-            return;
-
-        }
-
-        try {
-
-            const response =
-                await fetch(
-                    `${API_URL}/planner/?user_id=${userId}`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-                            subject: subject,
-                            task: task,
-                            study_date: studyDate,
-                            study_time: studyTime
-                        })
-                    }
-                );
-
-            if (!response.ok) {
-
-                alert(
-                    "Unable to add study task."
-                );
-
+            if (
+                !subject ||
+                !task ||
+                !studyDate ||
+                !studyTime
+            ) {
                 return;
-
             }
 
+            if (
+                !subject.value.trim() ||
+                !task.value.trim() ||
+                !studyDate.value ||
+                !studyTime.value
+            ) {
+                return;
+            }
+
+            addTask({
+                subject: subject.value.trim(),
+                task: task.value.trim(),
+                study_date: studyDate.value,
+                study_time: studyTime.value
+            });
+
             plannerForm.reset();
-
-            loadTasks();
-
-        } catch (error) {
-
-            alert(
-                "Unable to connect to the server."
-            );
-
-            console.error(error);
-
         }
-
-    }
-);
-
+    );
+}
 
 loadTasks();

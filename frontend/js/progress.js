@@ -1,392 +1,268 @@
-const API_URL = "http://localhost:8000";
+const USER_KEY = "user";
+const PLANNER_KEY = "study_assistant_planner";
+const MATERIALS_KEY = "study_assistant_materials";
+const CHAT_HISTORY_KEY = "study_assistant_chat_history";
 
-const userData = localStorage.getItem("user");
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
 const user = JSON.parse(userData);
-const userId = user.user.id;
+const userId = user.user_id;
 
-const taskCount = document.getElementById("taskCount");
-const quizScore = document.getElementById("quizScore");
-const materialCount = document.getElementById("materialCount");
-const progressBar = document.getElementById("progressBar");
-const progressMessage = document.getElementById("progressMessage");
-const studySummary = document.getElementById("studySummary");
+const taskCount =
+    document.getElementById("taskCount");
+
+const quizScore =
+    document.getElementById("quizScore");
+
+const materialCount =
+    document.getElementById("materialCount");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const progressMessage =
+    document.getElementById("progressMessage");
+
+const studySummary =
+    document.getElementById("studySummary");
 
 
-/* =========================================================
-   Load Progress
-   ========================================================= */
+function getUserData(key) {
+    const data = JSON.parse(
+        localStorage.getItem(key) || "[]"
+    );
 
-async function loadProgress() {
+    return data.filter(
+        item =>
+            String(item.user_id) ===
+            String(userId)
+    );
+}
 
-    try {
 
-        const response = await fetch(
-            `${API_URL}/progress/?user_id=${userId}`
+/* =========================================
+   STUDY TASKS
+========================================= */
+
+function getTaskCount() {
+    const tasks =
+        getUserData(PLANNER_KEY);
+
+    if (taskCount) {
+        taskCount.textContent =
+            tasks.length;
+    }
+
+    return tasks.length;
+}
+
+
+/* =========================================
+   STUDY MATERIALS
+========================================= */
+
+function getMaterialCount() {
+    const materials =
+        getUserData(MATERIALS_KEY);
+
+    if (materialCount) {
+        materialCount.textContent =
+            materials.length;
+    }
+
+    return materials.length;
+}
+
+
+/* =========================================
+   QUIZ SCORE
+========================================= */
+
+function getQuizScore() {
+    const quizResults =
+        getUserData(
+            "study_assistant_quiz_results"
         );
 
-        if (!response.ok) {
-            throw new Error("Unable to load progress.");
+    if (quizResults.length === 0) {
+        if (quizScore) {
+            quizScore.textContent = "0%";
         }
 
-        const data = await response.json();
+        return 0;
+    }
 
-        taskCount.textContent = data.study_tasks;
-        quizScore.textContent = `${data.quiz_score}%`;
-        materialCount.textContent = data.materials;
+    let totalScore = 0;
+    let totalQuestions = 0;
 
-        let progress = 0;
+    quizResults.forEach(result => {
+        totalScore +=
+            Number(result.score) || 0;
 
-        if (data.study_tasks > 0) {
-            progress += 40;
+        totalQuestions +=
+            Number(result.total_questions) || 0;
+    });
+
+    if (totalQuestions === 0) {
+        if (quizScore) {
+            quizScore.textContent = "0%";
         }
 
-        if (data.materials > 0) {
-            progress += 30;
-        }
+        return 0;
+    }
 
-        if (data.quiz_score > 0) {
-            progress += 30;
-        }
+    const percentage =
+        Math.round(
+            (totalScore / totalQuestions) * 100
+        );
 
-        progressBar.style.width = `${progress}%`;
-        progressBar.textContent = `${progress}%`;
+    if (quizScore) {
+        quizScore.textContent =
+            `${percentage}%`;
+    }
+
+    return percentage;
+}
+
+
+/* =========================================
+   LEARNING PROGRESS
+========================================= */
+
+function updateLearningProgress(
+    tasks,
+    materials,
+    quizPercentage
+) {
+    const activityCount =
+        tasks +
+        materials;
+
+    let progress = 0;
+
+    if (activityCount > 0) {
+        progress += 40;
+    }
+
+    if (materials > 0) {
+        progress += 20;
+    }
+
+    if (tasks > 0) {
+        progress += 20;
+    }
+
+    if (quizPercentage > 0) {
+        progress += 20;
+    }
+
+    progress =
+        Math.min(progress, 100);
+
+    if (progressBar) {
+        progressBar.style.width =
+            `${progress}%`;
+
+        progressBar.textContent =
+            `${progress}%`;
+    }
+
+    if (progressMessage) {
 
         if (progress === 0) {
-
             progressMessage.textContent =
                 "Start studying to track your progress.";
-
         } else if (progress < 50) {
-
             progressMessage.textContent =
-                "Good start. Keep studying consistently.";
-
+                "Good start. Keep studying regularly.";
         } else if (progress < 80) {
-
             progressMessage.textContent =
-                "You are making good progress. Keep going.";
-
+                "Good progress. Keep learning and practicing.";
         } else {
-
             progressMessage.textContent =
-                "Excellent progress. Keep learning!";
+                "Great work. You are making strong study progress.";
         }
-
-    } catch (error) {
-
-        console.error("Progress error:", error);
-
-        progressMessage.textContent =
-            "Unable to load your progress.";
     }
+
+    return progress;
 }
 
 
-/* =========================================================
-   Load Study Summary
-   ========================================================= */
-
-async function loadStudySummary() {
-
-    try {
-
-        const response = await fetch(
-            `${API_URL}/progress/summary?user_id=${userId}`
-        );
-
-        if (!response.ok) {
-            throw new Error("Unable to load study summary.");
-        }
-
-        const activities = await response.json();
-
-        studySummary.innerHTML = "";
-
-
-        if (
-            !Array.isArray(activities) ||
-            activities.length === 0
-        ) {
-
-            studySummary.innerHTML = `
-                <p>No learning activity recorded yet.</p>
-            `;
-
-            return;
-        }
-
-
-        /* =====================================================
-           Summary Grid
-           ===================================================== */
-
-        studySummary.style.display = "grid";
-
-        studySummary.style.gridTemplateColumns =
-            "repeat(2, minmax(0, 1fr))";
-
-        studySummary.style.gap = "25px";
-
-        studySummary.style.backgroundColor =
-            "transparent";
-
-        studySummary.style.padding = "0";
-
-
-        /* =====================================================
-           Group Activities By Subject
-           ===================================================== */
-
-        const subjects = {};
-
-
-        activities.forEach(function (activity) {
-
-            const subject =
-                activity.subject || "Other";
-
-
-            if (!subjects[subject]) {
-
-                subjects[subject] = [];
-
-            }
-
-
-            subjects[subject].push(
-                activity
-            );
-
-        });
-
-
-        /* =====================================================
-           Create One Grid Card For Each Subject
-           ===================================================== */
-
-        Object.keys(subjects).forEach(
-            function (subject) {
-
-                const subjectCard =
-                    document.createElement("div");
-
-
-                subjectCard.style.backgroundColor =
-                    "white";
-
-                subjectCard.style.color =
-                    "black";
-
-                subjectCard.style.padding =
-                    "25px";
-
-                subjectCard.style.borderRadius =
-                    "15px";
-
-                subjectCard.style.borderLeft =
-                    "6px solid darkblue";
-
-                subjectCard.style.boxShadow =
-                    "0 6px 18px rgba(0, 0, 0, 0.18)";
-
-                subjectCard.style.width =
-                    "100%";
-
-                subjectCard.style.boxSizing =
-                    "border-box";
-
-
-                /* =================================================
-                   Subject Heading
-                   ================================================= */
-
-                const subjectHeading =
-                    document.createElement("h3");
-
-
-                subjectHeading.textContent =
-                    subject;
-
-
-                subjectHeading.style.margin =
-                    "0 0 20px 0";
-
-                subjectHeading.style.color =
-                    "darkblue";
-
-                subjectHeading.style.fontSize =
-                    "22px";
-
-
-                subjectCard.appendChild(
-                    subjectHeading
-                );
-
-
-                /* =================================================
-                   Add All Activities Of This Subject
-                   ================================================= */
-
-                subjects[subject].forEach(
-                    function (activity) {
-
-                        const topic =
-                            activity.topic ||
-                            "Topic";
-
-
-                        /* =========================================
-                           Topic
-                           ========================================= */
-
-                        const topicHeading =
-                            document.createElement("h4");
-
-
-                        topicHeading.textContent =
-                            topic;
-
-
-                        topicHeading.style.margin =
-                            "0 0 8px 0";
-
-                        topicHeading.style.fontSize =
-                            "17px";
-
-                        topicHeading.style.color =
-                            "black";
-
-
-                        subjectCard.appendChild(
-                            topicHeading
-                        );
-
-
-                        /* =========================================
-                           Activity
-                           ========================================= */
-
-                        const activityText =
-                            document.createElement("p");
-
-
-                        activityText.textContent =
-                            activity.activity || "";
-
-
-                        activityText.style.margin =
-                            "0 0 12px 0";
-
-                        activityText.style.fontSize =
-                            "15px";
-
-                        activityText.style.lineHeight =
-                            "1.6";
-
-                        activityText.style.color =
-                            "black";
-
-
-                        subjectCard.appendChild(
-                            activityText
-                        );
-
-
-                        /* =========================================
-                           Learned Content
-                           ========================================= */
-
-                        if (
-                            activity.learned_content
-                        ) {
-
-                            const learnedContent =
-                                document.createElement("p");
-
-
-                            learnedContent.textContent =
-                                activity.learned_content;
-
-
-                            learnedContent.style.margin =
-                                "0 0 20px 0";
-
-                            learnedContent.style.fontSize =
-                                "15px";
-
-                            learnedContent.style.lineHeight =
-                                "1.6";
-
-                            learnedContent.style.color =
-                                "black";
-
-
-                            subjectCard.appendChild(
-                                learnedContent
-                            );
-
-                        }
-
-                    }
-                );
-
-
-                /* =================================================
-                   Add Subject Card To Grid
-                   ================================================= */
-
-                studySummary.appendChild(
-                    subjectCard
-                );
-
-            }
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Study summary error:",
-            error
-        );
-
-        studySummary.innerHTML = `
-            <p>Unable to load your learning activity.</p>
-        `;
+/* =========================================
+   STUDY SUMMARY
+========================================= */
+
+function updateStudySummary(
+    tasks,
+    materials,
+    quizPercentage,
+    chatHistory
+) {
+    if (!studySummary) {
+        return;
     }
+
+    studySummary.innerHTML = "";
+
+    const summaryItems = [
+        `Study tasks completed or planned: ${tasks}`,
+        `Study materials saved: ${materials}`,
+        `Quiz performance: ${quizPercentage}%`,
+        `AI study questions asked: ${chatHistory}`
+    ];
+
+    summaryItems.forEach(text => {
+
+        const paragraph =
+            document.createElement("p");
+
+        paragraph.textContent =
+            text;
+
+        studySummary.appendChild(
+            paragraph
+        );
+    });
 }
 
 
-/* =========================================================
-   Mobile Layout
-   ========================================================= */
+/* =========================================
+   LOAD PROGRESS
+========================================= */
 
-window.addEventListener(
-    "resize",
-    function () {
+function loadProgress() {
 
-        if (window.innerWidth <= 600) {
+    const tasks =
+        getTaskCount();
 
-            studySummary.style.gridTemplateColumns =
-                "1fr";
+    const materials =
+        getMaterialCount();
 
-        } else {
+    const quizPercentage =
+        getQuizScore();
 
-            studySummary.style.gridTemplateColumns =
-                "repeat(2, minmax(0, 1fr))";
-        }
+    const chatHistory =
+        getUserData(
+            CHAT_HISTORY_KEY
+        ).length;
 
-    }
-);
+    updateLearningProgress(
+        tasks,
+        materials,
+        quizPercentage
+    );
 
+    updateStudySummary(
+        tasks,
+        materials,
+        quizPercentage,
+        chatHistory
+    );
+}
 
-/* =========================================================
-   Start
-   ========================================================= */
 
 loadProgress();
-loadStudySummary();

@@ -1,49 +1,281 @@
+const CHAT_HISTORY_KEY = "study_assistant_chat_history";
+const USER_KEY = "user";
+
 const chatForm = document.getElementById("chatForm");
+const questionInput = document.getElementById("question");
+const subjectInput = document.getElementById("subjectInput");
+const chatMessages = document.getElementById("chatMessages");
 
-const subjectInput =
-    document.getElementById("subjectInput");
+const voiceButton = document.getElementById("voiceButton");
+const voiceStatus = document.getElementById("voiceStatus");
 
-const chatInput =
-    document.getElementById("chatInput");
-
-const chatMessages =
-    document.getElementById("chatMessages");
-
-const voiceButton =
-    document.getElementById("voiceButton");
-
-const voiceStatus =
-    document.getElementById("voiceStatus");
-
-
-const API_URL = "http://localhost:8000";
-
-
-const userData =
-    localStorage.getItem("user");
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
 }
 
-const user =
-    JSON.parse(userData);
+const user = JSON.parse(userData);
 
-const userId =
-    user.id;
+const userId = user.user_id;
 
+
+/* =========================================================
+   CHAT HISTORY
+========================================================= */
+
+function getChatHistory() {
+
+    const history = JSON.parse(
+        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
+    );
+
+    return history.filter(
+        item =>
+            String(item.user_id) ===
+            String(userId)
+    );
+}
+
+
+function saveChatHistory(question, answer) {
+
+    const history = JSON.parse(
+        localStorage.getItem(CHAT_HISTORY_KEY) || "[]"
+    );
+
+    history.push({
+
+        id: Date.now(),
+
+        user_id: userId,
+
+        question: question,
+
+        answer: answer,
+
+        created_at:
+            new Date().toISOString()
+
+    });
+
+    localStorage.setItem(
+        CHAT_HISTORY_KEY,
+        JSON.stringify(history)
+    );
+}
+
+
+/* =========================================================
+   DISPLAY MESSAGE
+========================================================= */
+
+function addMessage(text, type) {
+
+    const message =
+        document.createElement("div");
+
+    message.className =
+        `chat-message ${type}`;
+
+    message.textContent =
+        text;
+
+    chatMessages.appendChild(
+        message
+    );
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+}
+
+
+/* =========================================================
+   SIMPLE STUDY ANSWER
+========================================================= */
+
+function generateAnswer(question, subject) {
+
+    const text =
+        question
+            .toLowerCase()
+            .trim();
+
+    if (!text) {
+
+        return "Please enter a question.";
+    }
+
+
+    if (
+        text.includes("hello") ||
+        text.includes("hi") ||
+        text.includes("hey")
+    ) {
+
+        return "Hello. I am your AI Study Assistant. Ask me a study question.";
+    }
+
+
+    if (
+        text.includes("what is") ||
+        text.includes("define")
+    ) {
+
+        return `Definition: ${question.replace(
+            /what is|define/gi,
+            ""
+        ).trim()}
+
+Simple explanation: This topic can be understood by learning its basic meaning, important features, and practical examples.
+
+Example: Try connecting the topic with a simple real-world situation.`;
+    }
+
+
+    if (
+        text.includes("explain") ||
+        text.includes("how") ||
+        text.includes("why")
+    ) {
+
+        return `1. Understand the basic concept of ${subject || "this topic"}.
+2. Break the question into smaller parts.
+3. Learn each part with a simple example.
+4. Practice the concept with a few questions.`;
+    }
+
+
+    if (text.includes("python")) {
+
+        return `1. Python is a high-level programming language.
+2. It is widely used for web development, automation, data science, and AI.
+3. Python uses simple and readable syntax.
+4. Example: print("Hello World")`;
+    }
+
+
+    if (text.includes("html")) {
+
+        return `1. HTML stands for HyperText Markup Language.
+2. It is used to create the structure of web pages.
+3. HTML uses elements and tags.
+4. Example: <h1>Hello</h1>`;
+    }
+
+
+    if (text.includes("css")) {
+
+        return `1. CSS stands for Cascading Style Sheets.
+2. It is used to style HTML elements.
+3. CSS controls colors, sizes, spacing, layouts, and animations.
+4. Example: color: blue;`;
+    }
+
+
+    if (text.includes("javascript")) {
+
+        return `1. JavaScript is a programming language used to make web pages interactive.
+2. It can respond to user actions.
+3. It can change HTML and CSS dynamically.
+4. Example: alert("Hello");`;
+    }
+
+
+    return `1. Your question is related to ${subject || "your study topic"}.
+2. Start by identifying the main concept.
+3. Break the concept into smaller parts.
+4. Learn each part with an example.
+5. Practice the concept to improve your understanding.`;
+}
+
+
+/* =========================================================
+   SEND CHAT MESSAGE
+========================================================= */
+
+function sendQuestion() {
+
+    const question =
+        questionInput.value.trim();
+
+    const subject =
+        subjectInput
+            ? subjectInput.value.trim()
+            : "";
+
+
+    if (!question) {
+
+        return;
+    }
+
+
+    addMessage(
+        question,
+        "user"
+    );
+
+
+    const answer =
+        generateAnswer(
+            question,
+            subject
+        );
+
+
+    addMessage(
+        answer,
+        "assistant"
+    );
+
+
+    saveChatHistory(
+        question,
+        answer
+    );
+
+
+    questionInput.value = "";
+
+    questionInput.focus();
+}
+
+
+/* =========================================================
+   CHAT FORM
+========================================================= */
+
+if (chatForm) {
+
+    chatForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            sendQuestion();
+
+        }
+    );
+}
+
+
+/* =========================================================
+   VOICE ASSISTANT
+========================================================= */
+
+let recognition = null;
+
+let isListening = false;
+
+
+/* Browser speech recognition */
 
 const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
-
-let recognition = null;
-
-
-// =========================================
-// VOICE RECOGNITION
-// =========================================
 
 if (SpeechRecognition) {
 
@@ -60,16 +292,23 @@ if (SpeechRecognition) {
         false;
 
 
-    recognition.onstart = function () {
+    recognition.onstart =
+        function () {
 
-        voiceButton.classList.add(
-            "listening"
-        );
+            isListening = true;
 
-        voiceStatus.textContent =
-            "Listening... Speak your question.";
+            if (voiceStatus) {
 
-    };
+                voiceStatus.textContent =
+                    "Listening...";
+            }
+
+            if (voiceButton) {
+
+                voiceButton.textContent =
+                    "🎤 Listening...";
+            }
+        };
 
 
     recognition.onresult =
@@ -78,314 +317,102 @@ if (SpeechRecognition) {
             const transcript =
                 event.results[0][0].transcript;
 
-            chatInput.value =
+            questionInput.value =
                 transcript;
 
-            voiceStatus.textContent =
-                "Question received. Click Ask.";
+            if (voiceStatus) {
 
-            voiceButton.classList.remove(
-                "listening"
-            );
+                voiceStatus.textContent =
+                    "Voice captured.";
+            }
 
+            sendQuestion();
         };
 
 
     recognition.onerror =
-        function (event) {
+        function () {
 
-            console.error(
-                "Voice recognition error:",
-                event.error
-            );
+            if (voiceStatus) {
 
-            voiceStatus.textContent =
-                "Unable to understand your voice.";
-
-            voiceButton.classList.remove(
-                "listening"
-            );
-
+                voiceStatus.textContent =
+                    "Could not hear you. Please try again.";
+            }
         };
 
 
     recognition.onend =
         function () {
 
-            voiceButton.classList.remove(
-                "listening"
-            );
+            isListening = false;
 
+            if (voiceButton) {
+
+                voiceButton.textContent =
+                    "🎤 Voice";
+            }
         };
 
-} else {
 
-    voiceButton.disabled =
-        true;
+    if (voiceButton) {
 
-    voiceStatus.textContent =
-        "Voice input is not supported in this browser.";
+        voiceButton.addEventListener(
+            "click",
+            function () {
 
-}
+                if (isListening) {
 
+                    recognition.stop();
 
-// =========================================
-// VOICE BUTTON
-// =========================================
-
-voiceButton.addEventListener(
-    "click",
-    function () {
-
-        if (!recognition) {
-            return;
-        }
-
-        try {
-
-            recognition.start();
-
-        } catch (error) {
-
-            console.error(error);
-
-        }
-
-    }
-);
+                    return;
+                }
 
 
-// =========================================
-// CHAT FORM
-// =========================================
+                if (voiceStatus) {
 
-chatForm.addEventListener(
-    "submit",
-    async function (event) {
-
-        event.preventDefault();
+                    voiceStatus.textContent =
+                        "Starting microphone...";
+                }
 
 
-        const subject =
-            subjectInput.value.trim();
-
-
-        const question =
-            chatInput.value.trim();
-
-
-        if (!subject) {
-
-            voiceStatus.textContent =
-                "Please enter a subject.";
-
-            subjectInput.focus();
-
-            return;
-
-        }
-
-
-        if (!question) {
-
-            voiceStatus.textContent =
-                "Please enter a question.";
-
-            chatInput.focus();
-
-            return;
-
-        }
-
-
-        // Show student's question
-        addMessage(
-            "You",
-            question,
-            "user-message"
-        );
-
-
-        chatInput.value =
-            "";
-
-
-        // Show temporary AI message
-        const aiMessage =
-            addMessage(
-                "AI Assistant",
-                "Thinking...",
-                "ai-message"
-            );
-
-
-        try {
-
-            // =========================================
-            // GET AI ANSWER
-            // =========================================
-
-            const response =
-                await fetch(
-                    `${API_URL}/chat/?user_id=${userId}`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-
-                            question:
-                                question,
-
-                            subject:
-                                subject
-
-                        })
-
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
-
-            if (!response.ok) {
-
-                aiMessage.textContent =
-                    data.detail ||
-                    "Unable to get an AI response.";
-
-                return;
+                recognition.start();
 
             }
-
-
-            const answer =
-                data.answer ||
-                "No answer received.";
-
-
-            aiMessage.textContent =
-                answer;
-
-
-            // =========================================
-            // SPEAK AI ANSWER
-            // =========================================
-
-            speakAnswer(answer);
-
-
-            voiceStatus.textContent =
-                "Answer received.";
-
-        }
-
-        catch (error) {
-
-            console.error(
-                error
-            );
-
-            aiMessage.textContent =
-                "Unable to connect to the server.";
-
-        }
-
-
-        chatMessages.scrollTop =
-            chatMessages.scrollHeight;
-
+        );
     }
-);
+
+}
+else {
+
+    if (voiceButton) {
+
+        voiceButton.disabled =
+            true;
+
+        voiceButton.textContent =
+            "Voice Not Supported";
+    }
 
 
-// =========================================
-// ADD CHAT MESSAGE
-// =========================================
+    if (voiceStatus) {
 
-function addMessage(
-    sender,
-    text,
-    messageClass
-) {
-
-    const message =
-        document.createElement(
-            "div"
-        );
-
-
-    message.className =
-        `message ${messageClass}`;
-
-
-    const title =
-        document.createElement(
-            "strong"
-        );
-
-
-    title.textContent =
-        sender;
-
-
-    const paragraph =
-        document.createElement(
-            "p"
-        );
-
-
-    paragraph.textContent =
-        text;
-
-
-    message.appendChild(
-        title
-    );
-
-
-    message.appendChild(
-        paragraph
-    );
-
-
-    chatMessages.appendChild(
-        message
-    );
-
-
-    chatMessages.scrollTop =
-        chatMessages.scrollHeight;
-
-
-    return paragraph;
-
+        voiceStatus.textContent =
+            "Voice recognition is not supported by this browser.";
+    }
 }
 
 
-// =========================================
-// SPEAK AI ANSWER
-// =========================================
+/* =========================================================
+   SPEAK ANSWER
+========================================================= */
 
-function speakAnswer(
-    answer
-) {
+function speakText(text) {
 
     if (
-        !(
-            "speechSynthesis"
-            in window
-        )
+        !("speechSynthesis" in window)
     ) {
 
         return;
-
     }
 
 
@@ -394,24 +421,54 @@ function speakAnswer(
 
     const speech =
         new SpeechSynthesisUtterance(
-            answer
+            text
         );
-
 
     speech.lang =
         "en-US";
 
-
     speech.rate =
-        0.9;
-
-
-    speech.pitch =
-        1;
+        0.8;
 
 
     window.speechSynthesis.speak(
         speech
     );
-
 }
+
+
+/* =========================================================
+   LOAD PREVIOUS CHAT
+========================================================= */
+
+function loadRecentChat() {
+
+    if (!chatMessages) {
+
+        return;
+    }
+
+
+    const history =
+        getChatHistory();
+
+
+    history
+        .slice(-10)
+        .forEach(item => {
+
+            addMessage(
+                item.question,
+                "user"
+            );
+
+            addMessage(
+                item.answer,
+                "assistant"
+            );
+
+        });
+}
+
+
+loadRecentChat();

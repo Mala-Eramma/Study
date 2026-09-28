@@ -1,928 +1,267 @@
-const uploadForm = document.getElementById("uploadForm");
+const MATERIALS_KEY = "study_assistant_materials";
+const USER_KEY = "user";
 
-const materialFile =
-    document.getElementById("materialFile");
-
-const materialsList =
-    document.getElementById("materialsList");
-
-const materialContent =
-    document.getElementById("materialContent");
-
-const aiSummaryContent =
-    document.getElementById("aiSummaryContent");
-
-const downloadSummaryButton =
-    document.getElementById("downloadSummaryButton");
-
-const API_URL = "http://localhost:8000";
-
-
-// =========================================
-// GET LOGGED-IN USER
-// =========================================
-
-const userData =
-    localStorage.getItem("user");
+const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
-
-    window.location.href =
-        "login.html";
-
+    window.location.href = "login.html";
 }
 
-const user =
-    JSON.parse(userData);
+const user = JSON.parse(userData);
+const userId = user.user_id;
 
-const userId =
-    user.user.id;
+const materialForm = document.getElementById("materialForm");
+const materialList = document.getElementById("materialList");
+const fileInput = document.getElementById("fileInput");
 
+function getMaterials() {
+    const materials = JSON.parse(
+        localStorage.getItem(MATERIALS_KEY) || "[]"
+    );
 
-// =========================================
-// SHOW MESSAGE
-// =========================================
+    return materials.filter(
+        material =>
+            String(material.user_id) === String(userId)
+    );
+}
 
-function showMessage(
-    message,
-    type = "success"
-) {
+function saveMaterials(materials) {
+    const allMaterials = JSON.parse(
+        localStorage.getItem(MATERIALS_KEY) || "[]"
+    );
 
-    let messageElement =
-        document.getElementById(
-            "materialMessage"
-        );
+    const otherUsersMaterials = allMaterials.filter(
+        material =>
+            String(material.user_id) !== String(userId)
+    );
 
-    if (!messageElement) {
+    localStorage.setItem(
+        MATERIALS_KEY,
+        JSON.stringify([
+            ...otherUsersMaterials,
+            ...materials
+        ])
+    );
+}
 
-        messageElement =
-            document.createElement("div");
-
-        messageElement.id =
-            "materialMessage";
-
-        uploadForm.insertAdjacentElement(
-            "afterend",
-            messageElement
-        );
-
+function formatFileSize(bytes) {
+    if (bytes < 1024) {
+        return `${bytes} B`;
     }
 
-    messageElement.textContent =
-        message;
-
-    messageElement.style.marginTop =
-        "15px";
-
-    messageElement.style.padding =
-        "10px";
-
-    messageElement.style.textAlign =
-        "center";
-
-    messageElement.style.fontWeight =
-        "600";
-
-    messageElement.style.color =
-        type === "error"
-            ? "red"
-            : "green";
-}
-
-
-// =========================================
-// LOAD ALL MATERIALS
-// =========================================
-
-async function loadMaterials() {
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_URL}/materials/?user_id=${userId}`
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Unable to load materials."
-            );
-
-        }
-
-
-        const materials =
-            await response.json();
-
-
-        materialsList.innerHTML =
-            "";
-
-
-        if (materials.length === 0) {
-
-            materialsList.innerHTML = `
-                <div class="empty-materials">
-                    <p>
-                        No study materials uploaded yet.
-                    </p>
-                </div>
-            `;
-
-            return;
-
-        }
-
-
-        materials.forEach(
-            function (material) {
-
-                addMaterialToPage(
-                    material
-                );
-
-            }
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Error loading materials:",
-            error
-        );
-
-
-        materialsList.innerHTML = `
-            <div class="empty-materials">
-                <p>
-                    Unable to load study materials.
-                </p>
-            </div>
-        `;
-
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
     }
 
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-
-// =========================================
-// ADD MATERIAL TO PAGE
-// =========================================
-
-function addMaterialToPage(
-    material
-) {
-
-    const materialItem =
+function createMaterialElement(material) {
+    const container =
         document.createElement("div");
 
-    materialItem.className =
-        "material-item";
+    container.className = "material-item";
 
-
-    const content =
-        document.createElement("div");
-
-
-    const heading =
+    const title =
         document.createElement("h3");
 
-    heading.textContent =
+    title.textContent =
         material.filename;
 
-
-    const description =
+    const size =
         document.createElement("p");
 
-    description.textContent =
-        "Uploaded study material";
+    size.textContent =
+        `Size: ${formatFileSize(material.size)}`;
 
+    const date =
+        document.createElement("p");
 
-    content.appendChild(
-        heading
-    );
-
-    content.appendChild(
-        description
-    );
-
-
-    // =====================================
-    // BUTTON CONTAINER
-    // =====================================
-
-    const buttonContainer =
-        document.createElement("div");
-
-    buttonContainer.className =
-        "material-buttons";
-
-
-    // =====================================
-    // AI SUMMARY BUTTON
-    // =====================================
-
-    const summaryButton =
-        document.createElement("button");
-
-    summaryButton.type =
-        "button";
-
-    summaryButton.textContent =
-        "AI Summary";
-
-
-    summaryButton.addEventListener(
-        "click",
-        function () {
-
-            generateSummary(
-                material.id,
-                summaryButton
-            );
-
-        }
-    );
-
-
-    // =====================================
-    // VIEW BUTTON
-    // =====================================
+    date.textContent =
+        `Added: ${new Date(
+            material.created_at
+        ).toLocaleString()}`;
 
     const viewButton =
         document.createElement("button");
 
-    viewButton.type =
-        "button";
-
     viewButton.textContent =
         "View";
-
 
     viewButton.addEventListener(
         "click",
         function () {
-
-            viewMaterial(
-                material
-            );
-
+            viewMaterial(material.id);
         }
     );
-
-
-    // =====================================
-    // DELETE BUTTON
-    // =====================================
 
     const deleteButton =
         document.createElement("button");
 
-    deleteButton.type =
-        "button";
-
     deleteButton.textContent =
         "Delete";
-
-    deleteButton.className =
-        "delete-material-button";
-
 
     deleteButton.addEventListener(
         "click",
         function () {
-
-            deleteMaterial(
-                material.id
-            );
-
+            deleteMaterial(material.id);
         }
     );
 
+    container.appendChild(title);
+    container.appendChild(size);
+    container.appendChild(date);
+    container.appendChild(viewButton);
+    container.appendChild(deleteButton);
 
-    // =====================================
-    // ADD BUTTONS
-    // =====================================
-
-    buttonContainer.appendChild(
-        summaryButton
-    );
-
-    buttonContainer.appendChild(
-        viewButton
-    );
-
-    buttonContainer.appendChild(
-        deleteButton
-    );
-
-
-    // =====================================
-    // ADD MATERIAL CARD
-    // =====================================
-
-    materialItem.appendChild(
-        content
-    );
-
-    materialItem.appendChild(
-        buttonContainer
-    );
-
-    materialsList.appendChild(
-        materialItem
-    );
-
+    materialList.appendChild(container);
 }
 
-
-// =========================================
-// CLEAN AI SUMMARY
-// =========================================
-
-function cleanSummary(
-    summary
-) {
-
-    let cleanedText =
-        summary;
-
-
-    cleanedText =
-        cleanedText.replace(
-            /\*\*/g,
-            ""
-        );
-
-
-    cleanedText =
-        cleanedText.replace(
-            /`/g,
-            ""
-        );
-
-
-    cleanedText =
-        cleanedText.replace(
-            /^\s*[-*]\s+/gm,
-            ""
-        );
-
-
-    cleanedText =
-        cleanedText.replace(
-            /[ \t]+/g,
-            " "
-        );
-
-
-    cleanedText =
-        cleanedText.replace(
-            /\n{2,}/g,
-            "\n"
-        );
-
-
-    return cleanedText.trim();
-
-}
-
-
-// =========================================
-// DISPLAY AI SUMMARY
-// =========================================
-
-function displaySummary(
-    summary
-) {
-
-    aiSummaryContent.innerHTML =
-        "";
-
-
-    const cleanedSummary =
-        cleanSummary(
-            summary
-        );
-
-
-    const lines =
-        cleanedSummary
-            .split(/\r?\n/)
-            .map(
-                function (line) {
-
-                    return line.trim();
-
-                }
-            )
-            .filter(
-                function (line) {
-
-                    return line.length > 0;
-
-                }
-            );
-
-
-    lines.forEach(
-        function (line) {
-
-            const point =
-                document.createElement("p");
-
-            point.textContent =
-                line;
-
-            aiSummaryContent.appendChild(
-                point
-            );
-
-        }
-    );
-
-
-    if (downloadSummaryButton) {
-
-        downloadSummaryButton.style.display =
-            "block";
-
+function loadMaterials() {
+    if (!materialList) {
+        return;
     }
 
+    materialList.innerHTML = "";
+
+    const materials = getMaterials();
+
+    if (materials.length === 0) {
+        const message =
+            document.createElement("p");
+
+        message.textContent =
+            "No study materials uploaded yet.";
+
+        materialList.appendChild(message);
+
+        return;
+    }
+
+    materials
+        .slice()
+        .reverse()
+        .forEach(material => {
+            createMaterialElement(material);
+        });
 }
 
+function viewMaterial(materialId) {
+    const materials = getMaterials();
 
-// =========================================
-// DOWNLOAD AI SUMMARY
-// =========================================
-
-if (downloadSummaryButton) {
-
-    downloadSummaryButton.addEventListener(
-        "click",
-        function () {
-
-            const summaryText =
-                aiSummaryContent.innerText.trim();
-
-
-            if (!summaryText) {
-
-                return;
-
-            }
-
-
-            const fileContent =
-                "AI STUDY ASSISTANT\n\n" +
-                "AI SUMMARY\n\n" +
-                summaryText;
-
-
-            const blob =
-                new Blob(
-                    [fileContent],
-                    {
-                        type: "text/plain"
-                    }
-                );
-
-
-            const downloadUrl =
-                URL.createObjectURL(
-                    blob
-                );
-
-
-            const link =
-                document.createElement("a");
-
-
-            link.href =
-                downloadUrl;
-
-
-            link.download =
-                "AI_Summary.txt";
-
-
-            document.body.appendChild(
-                link
-            );
-
-
-            link.click();
-
-
-            document.body.removeChild(
-                link
-            );
-
-
-            URL.revokeObjectURL(
-                downloadUrl
-            );
-
-        }
+    const material = materials.find(
+        item =>
+            String(item.id) === String(materialId)
     );
 
-}
+    if (!material || !material.data) {
+        return;
+    }
 
+    const byteCharacters =
+        atob(material.data.split(",")[1]);
 
-// =========================================
-// GENERATE AI SUMMARY
-// =========================================
+    const byteNumbers =
+        new Array(byteCharacters.length);
 
-async function generateSummary(
-    materialId,
-    summaryButton
-) {
-
-    if (
-        materialContent.style.display ===
-        "block"
+    for (
+        let i = 0;
+        i < byteCharacters.length;
+        i++
     ) {
-
-        materialContent.style.display =
-            "none";
-
-        aiSummaryContent.innerHTML =
-            "";
-
-        summaryButton.textContent =
-            "AI Summary";
-
-
-        if (downloadSummaryButton) {
-
-            downloadSummaryButton.style.display =
-                "none";
-
-        }
-
-        return;
-
+        byteNumbers[i] =
+            byteCharacters.charCodeAt(i);
     }
 
+    const byteArray =
+        new Uint8Array(byteNumbers);
 
-    materialContent.style.display =
-        "block";
-
-    aiSummaryContent.innerHTML =
-        "";
-
-
-    if (downloadSummaryButton) {
-
-        downloadSummaryButton.style.display =
-            "none";
-
-    }
-
-
-    const loadingMessage =
-        document.createElement("p");
-
-    loadingMessage.textContent =
-        "Reading the complete file and generating AI summary...";
-
-    aiSummaryContent.appendChild(
-        loadingMessage
-    );
-
-
-    summaryButton.textContent =
-        "Hide AI Summary";
-
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_URL}/materials/summary/${materialId}?user_id=${userId}`
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to generate summary."
-            );
-
-        }
-
-
-        if (
-            !data.summary ||
-            data.summary.trim() === ""
-        ) {
-
-            aiSummaryContent.innerHTML = `
-                <p>
-                    No summary could be generated.
-                </p>
-            `;
-
-
-            summaryButton.textContent =
-                "AI Summary";
-
-
-            return;
-
-        }
-
-
-        displaySummary(
-            data.summary
+    const blob =
+        new Blob(
+            [byteArray],
+            {
+                type: material.type
+            }
         );
 
+    const url =
+        URL.createObjectURL(blob);
 
-    } catch (error) {
-
-        console.error(
-            "Summary error:",
-            error
-        );
-
-
-        aiSummaryContent.innerHTML = `
-            <p>
-                Unable to generate AI summary.
-            </p>
-        `;
-
-
-        summaryButton.textContent =
-            "AI Summary";
-
-
-        if (downloadSummaryButton) {
-
-            downloadSummaryButton.style.display =
-                "none";
-
-        }
-
-    }
-
+    window.open(url, "_blank");
 }
 
+function deleteMaterial(materialId) {
+    const materials = getMaterials();
 
-// =========================================
-// VIEW MATERIAL
-// =========================================
+    const updatedMaterials =
+        materials.filter(
+            material =>
+                String(material.id) !==
+                String(materialId)
+        );
 
-function viewMaterial(
-    material
-) {
+    saveMaterials(updatedMaterials);
 
-    const fileUrl =
-        `${API_URL}/materials/view/${material.id}?user_id=${userId}`;
-
-
-    window.open(
-        fileUrl,
-        "_blank"
-    );
-
+    loadMaterials();
 }
 
+if (materialForm && fileInput) {
+    materialForm.addEventListener(
+        "submit",
+        function (event) {
+            event.preventDefault();
 
-// =========================================
-// DELETE MATERIAL
-// =========================================
+            const file = fileInput.files[0];
 
-async function deleteMaterial(
-    materialId
-) {
-
-    const confirmed =
-        confirm(
-            "Are you sure you want to delete this study material?"
-        );
-
-
-    if (!confirmed) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_URL}/materials/${materialId}?user_id=${userId}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            showMessage(
-                data.detail ||
-                "Unable to delete study material.",
-                "error"
-            );
-
-            return;
-
-        }
-
-
-        showMessage(
-            data.message,
-            "success"
-        );
-
-
-        materialContent.style.display =
-            "none";
-
-        aiSummaryContent.innerHTML =
-            "";
-
-
-        if (downloadSummaryButton) {
-
-            downloadSummaryButton.style.display =
-                "none";
-
-        }
-
-
-        await loadMaterials();
-
-
-    } catch (error) {
-
-        console.error(
-            "Delete material error:",
-            error
-        );
-
-
-        showMessage(
-            "Unable to connect to the server.",
-            "error"
-        );
-
-    }
-
-}
-
-
-// =========================================
-// UPLOAD MATERIAL
-// =========================================
-
-uploadForm.addEventListener(
-    "submit",
-    async function (event) {
-
-        event.preventDefault();
-
-
-        const file =
-            materialFile.files[0];
-
-
-        if (!file) {
-
-            showMessage(
-                "Please select a file.",
-                "error"
-            );
-
-            return;
-
-        }
-
-
-        const formData =
-            new FormData();
-
-
-        formData.append(
-            "file",
-            file
-        );
-
-
-        try {
-
-            const response =
-                await fetch(
-                    `${API_URL}/materials/upload?user_id=${userId}`,
-                    {
-                        method: "POST",
-                        body: formData
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
-
-            if (!response.ok) {
-
-                showMessage(
-                    data.detail ||
-                    "Unable to save material.",
-                    "error"
-                );
-
+            if (!file) {
+                alert("Please select a file.");
                 return;
-
             }
 
+            const allowedTypes = [
+                "application/pdf",
+                "text/plain"
+            ];
 
-            materialFile.value =
-                "";
-
-
-            materialContent.style.display =
-                "none";
-
-            aiSummaryContent.innerHTML =
-                "";
-
-
-            if (downloadSummaryButton) {
-
-                downloadSummaryButton.style.display =
-                    "none";
-
+            if (
+                !allowedTypes.includes(
+                    file.type
+                )
+            ) {
+                alert(
+                    "Only PDF and TXT files are supported."
+                );
+                return;
             }
 
+            const reader =
+                new FileReader();
 
-            showMessage(
-                "Study material saved successfully.",
-                "success"
-            );
+            reader.onload = function () {
+                const materials =
+                    getMaterials();
 
+                materials.push({
+                    id: Date.now(),
+                    user_id: userId,
+                    filename: file.name,
+                    size: file.size,
+                    type: file.type,
+                    data: reader.result,
+                    created_at:
+                        new Date().toISOString()
+                });
 
-            await loadMaterials();
+                saveMaterials(materials);
 
+                fileInput.value = "";
 
-        } catch (error) {
+                loadMaterials();
+            };
 
-            console.error(
-                "Upload error:",
-                error
-            );
-
-
-            showMessage(
-                "Unable to connect to the server.",
-                "error"
-            );
-
+            reader.readAsDataURL(file);
         }
-
-    }
-);
-
-
-// =========================================
-// HIDE SUMMARY INITIALLY
-// =========================================
-
-if (materialContent) {
-
-    materialContent.style.display =
-        "none";
-
+    );
 }
-
-
-if (downloadSummaryButton) {
-
-    downloadSummaryButton.style.display =
-        "none";
-
-}
-
-
-// =========================================
-// LOAD MATERIALS WHEN PAGE OPENS
-// =========================================
 
 loadMaterials();

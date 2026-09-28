@@ -1,58 +1,72 @@
+const USER_KEY = "user";
+
 const profileName =
-    document.getElementById("profileName");
+    document.getElementById(
+        "profileName"
+    );
 
 const profileEmail =
-    document.getElementById("profileEmail");
+    document.getElementById(
+        "profileEmail"
+    );
 
 const profileUserId =
-    document.getElementById("profileUserId");
+    document.getElementById(
+        "profileUserId"
+    );
 
 const logoutButton =
-    document.getElementById("logoutButton");
+    document.getElementById(
+        "logoutButton"
+    );
 
 const logoutProfileButton =
-    document.getElementById("logoutProfileButton");
-
+    document.getElementById(
+        "logoutProfileButton"
+    );
 
 const userData =
-    localStorage.getItem("user");
-
+    localStorage.getItem(USER_KEY);
 
 if (!userData) {
-
     window.location.href = "login.html";
-
 } else {
-
     const user =
         JSON.parse(userData);
 
-    profileName.textContent =
-        user.name || "Not available";
+    if (profileName) {
+        profileName.textContent =
+            user.name || "Not available";
+    }
 
-    profileEmail.textContent =
-        user.email || "Not available";
+    if (profileEmail) {
+        profileEmail.textContent =
+            user.email || "Not available";
+    }
 
-    profileUserId.textContent =
-        user.user_id || "Not available";
+    if (profileUserId) {
+        profileUserId.textContent =
+            user.user_id || "Not available";
+    }
 }
-
 
 function logout() {
+    localStorage.removeItem(USER_KEY);
 
-    localStorage.removeItem("user");
-
-    window.location.href = "login.html";
+    window.location.href =
+        "login.html";
 }
 
+if (logoutButton) {
+    logoutButton.addEventListener(
+        "click",
+        logout
+    );
+}
 
-logoutButton.addEventListener(
-    "click",
-    logout
-);
-
-
-logoutProfileButton.addEventListener(
-    "click",
-    logout
-);
+if (logoutProfileButton) {
+    logoutProfileButton.addEventListener(
+        "click",
+        logout
+    );
+}

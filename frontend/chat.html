@@ -27,9 +27,10 @@
 
 <body>
 
-    <!-- =========================================
-         HEADER
-    ========================================== -->
+
+    <!-- ============================= -->
+    <!-- HEADER -->
+    <!-- ============================= -->
 
     <header class="dashboard-header">
 
@@ -57,18 +58,19 @@
     </header>
 
 
-    <!-- =========================================
-         CHAT PAGE
-    ========================================== -->
+
+    <!-- ============================= -->
+    <!-- CHAT PAGE -->
+    <!-- ============================= -->
 
     <main class="chat-page">
 
         <section class="chat-container">
 
 
-            <!-- =====================================
-                 CHAT HEADER
-            ====================================== -->
+            <!-- ============================= -->
+            <!-- CHAT HEADER -->
+            <!-- ============================= -->
 
             <div class="chat-header">
 
@@ -77,82 +79,71 @@
                 </h1>
 
                 <p>
-                    Ask questions using text or your voice.
+                    Ask questions and learn with your AI Study Assistant.
                 </p>
 
             </div>
 
 
-            <!-- =====================================
-                 CHAT MESSAGES
-            ====================================== -->
+
+            <!-- ============================= -->
+            <!-- SUBJECT -->
+            <!-- ============================= -->
+
+            <div class="chat-subject">
+
+                <label for="subjectInput">
+                    Subject
+                </label>
+
+                <input
+                    type="text"
+                    id="subjectInput"
+                    placeholder="Enter subject"
+                >
+
+            </div>
+
+
+
+            <!-- ============================= -->
+            <!-- CHAT MESSAGES -->
+            <!-- ============================= -->
 
             <div
                 id="chatMessages"
                 class="chat-messages"
             >
 
-                <div class="message ai-message">
-
-                    <strong>
-                        AI Assistant
-                    </strong>
-
-                    <p>
-                        Hello. Ask me a study question
-                        by typing or speaking.
-                    </p>
-
-                </div>
-
             </div>
 
 
-            <!-- =====================================
-                 CHAT FORM
-            ====================================== -->
+
+            <!-- ============================= -->
+            <!-- CHAT FORM -->
+            <!-- ============================= -->
 
             <form
                 id="chatForm"
                 class="chat-form"
             >
 
-
-                <!-- SUBJECT -->
-
                 <input
                     type="text"
-                    id="subjectInput"
-                    placeholder="Enter subject (e.g. Python)"
+                    id="question"
+                    placeholder="Ask your study question..."
                     autocomplete="off"
-                    required
                 >
 
-
-                <!-- QUESTION -->
-
-                <input
-                    type="text"
-                    id="chatInput"
-                    placeholder="Type your study question..."
-                    autocomplete="off"
-                    required
-                >
-
-
-                <!-- VOICE BUTTON -->
 
                 <button
                     type="button"
                     id="voiceButton"
-                    class="voice-button"
-                    title="Speak your question"
+                    class="chat-button"
                 >
-                    🎤
+                    🎤 Voice
                 </button>
 
-
-                <!-- ASK BUTTON -->
 
                 <button
                     type="submit"
@@ -163,10 +154,6 @@
 
             </form>
 
-
-            <!-- =====================================
-                 VOICE STATUS
-            ====================================== -->
 
             <p
                 id="voiceStatus"
@@ -179,11 +166,13 @@
     </main>
 
 
-    <!-- =========================================
-         JAVASCRIPT
-    ========================================== -->
 
-    <script src="js/chat.js?v=2"></script>
+    <!-- ============================= -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================= -->
+
+    <script src="js/chat.js?v=4"></script>
+
 
 </body>
 

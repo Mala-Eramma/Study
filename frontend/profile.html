@@ -1,13 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Profile - AI Study Assistant</title>
 
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/dashboard.css"
+    >
+
 </head>
 
 <body>
@@ -15,17 +29,32 @@
     <header class="dashboard-header">
 
         <div class="header-left">
-            <h2>AI Study Assistant</h2>
+
+            <h2>
+                AI Study Assistant
+            </h2>
+
         </div>
 
+
         <div class="dashboard-actions">
-            <a href="dashboard.html" class="profile-button">
+
+            <a
+                href="dashboard.html"
+                class="profile-button"
+            >
                 Dashboard
             </a>
 
-            <button id="logoutButton" class="profile-button">
+
+            <a
+                href="login.html"
+                id="logoutButton"
+                class="profile-button"
+            >
                 Logout
-            </button>
+            </a>
+
         </div>
 
     </header>
@@ -39,7 +68,11 @@
                 👤
             </div>
 
-            <h1>My Profile</h1>
+
+            <h1>
+                My Profile
+            </h1>
+
 
             <p class="profile-subtitle">
                 Manage your account information
@@ -49,37 +82,61 @@
             <div class="profile-details">
 
                 <div class="profile-item">
-                    <span>Full Name</span>
-                    <strong id="profileName">Loading...</strong>
+
+                    <span>
+                        Full Name
+                    </span>
+
+                    <strong id="profileName">
+                        Loading...
+                    </strong>
+
                 </div>
 
-                <div class="profile-item">
-                    <span>Email</span>
-                    <strong id="profileEmail">Loading...</strong>
-                </div>
 
                 <div class="profile-item">
-                    <span>User ID</span>
-                    <strong id="profileUserId">Loading...</strong>
+
+                    <span>
+                        Email
+                    </span>
+
+                    <strong id="profileEmail">
+                        Loading...
+                    </strong>
+
+                </div>
+
+
+                <div class="profile-item">
+
+                    <span>
+                        User ID
+                    </span>
+
+                    <strong id="profileUserId">
+                        Loading...
+                    </strong>
+
                 </div>
 
             </div>
 
 
-            <button
-                type="button"
+            <a
+                href="login.html"
                 id="logoutProfileButton"
                 class="profile-logout-button"
             >
                 Logout
-            </button>
+            </a>
 
         </div>
 
     </main>
 
 
-    <script src="js/profile.js"></script>
+    <script src="js/profile.js?v=2"></script>
 
 </body>
+
 </html>
