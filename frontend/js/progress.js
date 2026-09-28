@@ -9,6 +9,14 @@ const MATERIALS_KEY =
 const CHAT_HISTORY_KEY =
     "study_assistant_chat_history";
 
+const QUIZ_PROGRESS_KEY =
+    "study_assistant_quiz_progress";
+
+
+/* =========================
+   USER
+========================= */
+
 const userData =
     localStorage.getItem(USER_KEY);
 
@@ -23,6 +31,11 @@ const userId =
     user.user_id ||
     user.id ||
     user.email;
+
+
+/* =========================
+   ELEMENTS
+========================= */
 
 const taskCount =
     document.getElementById(
@@ -49,21 +62,55 @@ const studySummary =
         "studySummary"
     );
 
+
+/* =========================
+   GET USER DATA
+========================= */
+
 function getUserData(key) {
 
-    const data =
-        JSON.parse(
-            localStorage.getItem(
-                key
-            ) || "[]"
+    let data = [];
+
+    try {
+
+        data =
+            JSON.parse(
+                localStorage.getItem(
+                    key
+                ) || "[]"
+            );
+
+    } catch (error) {
+
+        console.error(
+            `Unable to read ${key}:`,
+            error
         );
+
+        data = [];
+    }
+
+
+    if (!Array.isArray(data)) {
+        return [];
+    }
+
 
     return data.filter(
         item =>
-            String(item.user_id) ===
-            String(userId)
+            String(
+                item.user_id
+            ) ===
+            String(
+                userId
+            )
     );
 }
+
+
+/* =========================
+   TASK COUNT
+========================= */
 
 function getTaskCount() {
 
@@ -72,13 +119,21 @@ function getTaskCount() {
             PLANNER_KEY
         );
 
+
     if (taskCount) {
+
         taskCount.textContent =
             tasks.length;
     }
 
+
     return tasks.length;
 }
+
+
+/* =========================
+   MATERIAL COUNT
+========================= */
 
 function getMaterialCount() {
 
@@ -87,13 +142,21 @@ function getMaterialCount() {
             MATERIALS_KEY
         );
 
+
     if (materialCount) {
+
         materialCount.textContent =
             materials.length;
     }
 
+
     return materials.length;
 }
+
+
+/* =========================
+   CHAT COUNT
+========================= */
 
 function getChatCount() {
 
@@ -102,31 +165,79 @@ function getChatCount() {
     ).length;
 }
 
+
+/* =========================
+   QUIZ COUNT
+========================= */
+
+function getQuizCount() {
+
+    const quizzes =
+        getUserData(
+            QUIZ_PROGRESS_KEY
+        );
+
+
+    return quizzes.length;
+}
+
+
+/* =========================
+   LEARNING PROGRESS
+========================= */
+
 function updateLearningProgress(
     tasks,
     materials,
-    chatCount
+    chatCount,
+    quizCount
 ) {
 
     let progress = 0;
 
+
+    /*
+     * Planner
+     */
     if (tasks > 0) {
-        progress += 35;
+
+        progress += 25;
     }
 
+
+    /*
+     * Materials
+     */
     if (materials > 0) {
-        progress += 35;
+
+        progress += 25;
     }
 
+
+    /*
+     * AI Tutor
+     */
     if (chatCount > 0) {
-        progress += 30;
+
+        progress += 25;
     }
+
+
+    /*
+     * Quiz
+     */
+    if (quizCount > 0) {
+
+        progress += 25;
+    }
+
 
     progress =
         Math.min(
             progress,
             100
         );
+
 
     if (progressBar) {
 
@@ -137,6 +248,7 @@ function updateLearningProgress(
             `${progress}%`;
     }
 
+
     if (progressMessage) {
 
         if (progress === 0) {
@@ -144,17 +256,23 @@ function updateLearningProgress(
             progressMessage.textContent =
                 "Start studying to track your progress.";
 
-        } else if (progress < 50) {
+        }
+
+        else if (progress < 50) {
 
             progressMessage.textContent =
                 "Good start. Keep studying regularly.";
 
-        } else if (progress < 100) {
+        }
+
+        else if (progress < 100) {
 
             progressMessage.textContent =
                 "Good progress. Keep learning and practicing.";
 
-        } else {
+        }
+
+        else {
 
             progressMessage.textContent =
                 "Great work. You are actively using your study assistant.";
@@ -162,17 +280,27 @@ function updateLearningProgress(
     }
 }
 
+
+/* =========================
+   STUDY SUMMARY
+========================= */
+
 function updateStudySummary(
     tasks,
     materials,
-    chatCount
+    chatCount,
+    quizCount
 ) {
 
     if (!studySummary) {
+
         return;
     }
 
-    studySummary.innerHTML = "";
+
+    studySummary.innerHTML =
+        "";
+
 
     const summaryItems = [
 
@@ -180,8 +308,11 @@ function updateStudySummary(
 
         `Study materials: ${materials}`,
 
-        `AI study questions: ${chatCount}`
+        `AI study questions: ${chatCount}`,
+
+        `Quizzes completed: ${quizCount}`
     ];
+
 
     summaryItems.forEach(
         text => {
@@ -191,8 +322,10 @@ function updateStudySummary(
                     "p"
                 );
 
+
             paragraph.textContent =
                 text;
+
 
             studySummary.appendChild(
                 paragraph
@@ -201,28 +334,48 @@ function updateStudySummary(
     );
 }
 
+
+/* =========================
+   LOAD PROGRESS
+========================= */
+
 function loadProgress() {
 
     const tasks =
         getTaskCount();
 
+
     const materials =
         getMaterialCount();
+
 
     const chatCount =
         getChatCount();
 
+
+    const quizCount =
+        getQuizCount();
+
+
     updateLearningProgress(
         tasks,
         materials,
-        chatCount
+        chatCount,
+        quizCount
     );
+
 
     updateStudySummary(
         tasks,
         materials,
-        chatCount
+        chatCount,
+        quizCount
     );
 }
+
+
+/* =========================
+   START
+========================= */
 
 loadProgress();
