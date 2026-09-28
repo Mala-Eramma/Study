@@ -884,10 +884,10 @@ async function viewMaterial(
 
 
 /* =========================================================
-   LOCAL AI SUMMARY
+   PDF CONTENT SUMMARY
 ========================================================= */
 
-function showLocalSummary(
+async function showLocalSummary(
     material,
     summaryButton
 ) {
@@ -909,50 +909,135 @@ function showLocalSummary(
     }
 
 
+    summaryButton.textContent =
+        "Reading PDF...";
+
+
+    summaryButton.disabled =
+        true;
+
+
     aiSummaryContent.innerHTML = `
         <h3>${escapeHtml(
             material.filename
         )}</h3>
 
         <p>
-            This material has been saved successfully
-            in your browser.
-        </p>
-
-        <p>
-            File type:
-            ${escapeHtml(
-                material.type ||
-                "Unknown"
-            )}
-        </p>
-
-        <p>
-            File size:
-            ${formatFileSize(
-                material.size
-            )}
-        </p>
-
-        <p>
-            You can use the View button to open
-            the saved material.
+            Reading the actual PDF content...
         </p>
     `;
 
 
-    summaryButton.textContent =
-        "Hide Summary";
+    try {
+
+        if (
+            !material.file ||
+            !(
+                material.type ===
+                "application/pdf" ||
+                material.filename
+                    .toLowerCase()
+                    .endsWith(".pdf")
+            )
+        ) {
+
+            throw new Error(
+                "This file is not a PDF."
+            );
+        }
 
 
-    summaryButton.onclick =
-        function () {
+        /*
+         * PDF.js is loaded only when
+         * the Summary button is clicked.
+         */
 
-            materialContent.style.display =
-                "none";
+        const pdfjsLib =
+            await import(
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+            );
+
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+
+        const arrayBuffer =
+            await material.file.arrayBuffer();
+
+
+        const pdf =
+            await pdfjsLib.getDocument({
+                data: arrayBuffer
+            }).promise;
+
+
+        let fullText = "";
+
+
+        for (
+            let pageNumber = 1;
+            pageNumber <= pdf.numPages;
+            pageNumber++
+        ) {
+
+            const page =
+                await pdf.getPage(
+                    pageNumber
+                );
+
+
+            const textContent =
+                await page.getTextContent();
+
+
+            const pageText =
+                textContent.items
+                    .map(
+                        item =>
+                            item.str
+                    )
+                    .join(" ");
+
+
+            fullText +=
+                pageText +
+                " ";
+        }
+
+
+        fullText =
+            fullText
+                .replace(/\s+/g, " ")
+                .trim();
+
+
+        if (!fullText) {
+
+            aiSummaryContent.innerHTML = `
+                <h3>${escapeHtml(
+                    material.filename
+                )}</h3>
+
+                <p>
+                    No readable text was found
+                    inside this PDF.
+                </p>
+
+                <p>
+                    This may be a scanned PDF.
+                    Scanned PDFs require OCR.
+                </p>
+            `;
+
+
+            summaryButton.disabled =
+                false;
+
 
             summaryButton.textContent =
                 "AI Summary";
+
 
             summaryButton.onclick =
                 function () {
@@ -962,7 +1047,158 @@ function showLocalSummary(
                         summaryButton
                     );
                 };
-        };
+
+
+            return;
+        }
+
+
+        /*
+         * Extract sentences from the
+         * actual PDF content.
+         */
+
+        const sentences =
+            fullText.match(
+                /[^.!?]+[.!?]+/g
+            ) || [];
+
+
+        let summarySentences =
+            sentences
+                .map(
+                    sentence =>
+                        sentence.trim()
+                )
+                .filter(
+                    sentence =>
+                        sentence.length > 40
+                );
+
+
+        /*
+         * If the PDF has very little
+         * punctuation, use its content.
+         */
+
+        if (
+            summarySentences.length === 0
+        ) {
+
+            summarySentences = [
+                fullText.substring(
+                    0,
+                    3000
+                )
+            ];
+        }
+
+
+        /*
+         * Keep the displayed summary
+         * reasonably short.
+         */
+
+        summarySentences =
+            summarySentences.slice(
+                0,
+                8
+            );
+
+
+        const summary =
+            summarySentences.join(
+                " "
+            );
+
+
+        aiSummaryContent.innerHTML = `
+            <h3>${escapeHtml(
+                material.filename
+            )}</h3>
+
+            <p>
+                ${escapeHtml(
+                    summary
+                )}
+            </p>
+        `;
+
+
+        summaryButton.disabled =
+            false;
+
+
+        summaryButton.textContent =
+            "Hide Summary";
+
+
+        summaryButton.onclick =
+            function () {
+
+                materialContent.style.display =
+                    "none";
+
+
+                summaryButton.textContent =
+                    "AI Summary";
+
+
+                summaryButton.disabled =
+                    false;
+
+
+                summaryButton.onclick =
+                    function () {
+
+                        showLocalSummary(
+                            material,
+                            summaryButton
+                        );
+                    };
+            };
+
+
+    } catch (error) {
+
+        console.error(
+            "PDF summary error:",
+            error
+        );
+
+
+        aiSummaryContent.innerHTML = `
+            <h3>${escapeHtml(
+                material.filename
+            )}</h3>
+
+            <p>
+                Unable to read the PDF content.
+            </p>
+
+            <p>
+                Please try uploading the PDF again.
+            </p>
+        `;
+
+
+        summaryButton.disabled =
+            false;
+
+
+        summaryButton.textContent =
+            "AI Summary";
+
+
+        summaryButton.onclick =
+            function () {
+
+                showLocalSummary(
+                    material,
+                    summaryButton
+                );
+            };
+    }
 }
 
 
@@ -1074,6 +1310,7 @@ uploadForm.addEventListener(
                 "Please select a file.",
                 "error"
             );
+
 
             return;
         }
@@ -1193,7 +1430,9 @@ async function startMaterials() {
 
         await openDatabase();
 
+
         await loadMaterials();
+
 
     } catch (error) {
 
