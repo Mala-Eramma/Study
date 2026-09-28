@@ -47,6 +47,11 @@ const materialCount =
         "materialCount"
     );
 
+const quizScore =
+    document.getElementById(
+        "quizScore"
+    );
+
 const progressBar =
     document.getElementById(
         "progressBar"
@@ -167,18 +172,132 @@ function getChatCount() {
 
 
 /* =========================
+   QUIZ DATA
+========================= */
+
+function getQuizData() {
+
+    return getUserData(
+        QUIZ_PROGRESS_KEY
+    );
+}
+
+
+/* =========================
    QUIZ COUNT
 ========================= */
 
 function getQuizCount() {
 
     const quizzes =
-        getUserData(
-            QUIZ_PROGRESS_KEY
+        getQuizData();
+
+    return quizzes.length;
+}
+
+
+/* =========================
+   QUIZ SCORE
+========================= */
+
+function getQuizScore() {
+
+    const quizzes =
+        getQuizData();
+
+
+    if (
+        !quizzes ||
+        quizzes.length === 0
+    ) {
+
+        if (quizScore) {
+            quizScore.textContent =
+                "0%";
+        }
+
+        return 0;
+    }
+
+
+    let totalPercentage = 0;
+
+
+    quizzes.forEach(
+        quiz => {
+
+            let percentage =
+                Number(
+                    quiz.percentage
+                );
+
+
+            /*
+             * If percentage is not stored,
+             * calculate it from score and total.
+             */
+
+            if (
+                !Number.isFinite(
+                    percentage
+                )
+            ) {
+
+                const score =
+                    Number(
+                        quiz.score
+                    );
+
+                const total =
+                    Number(
+                        quiz.total
+                    );
+
+
+                if (
+                    total > 0
+                ) {
+
+                    percentage =
+                        (
+                            score /
+                            total
+                        ) *
+                        100;
+
+                } else {
+
+                    percentage = 0;
+                }
+            }
+
+
+            totalPercentage +=
+                percentage;
+        }
+    );
+
+
+    /*
+     * Average score of all
+     * completed quizzes.
+     */
+
+    const averageScore =
+        Math.round(
+            totalPercentage /
+            quizzes.length
         );
 
 
-    return quizzes.length;
+    if (quizScore) {
+
+        quizScore.textContent =
+            `${averageScore}%`;
+    }
+
+
+    return averageScore;
 }
 
 
@@ -199,6 +318,7 @@ function updateLearningProgress(
     /*
      * Planner
      */
+
     if (tasks > 0) {
 
         progress += 25;
@@ -208,6 +328,7 @@ function updateLearningProgress(
     /*
      * Materials
      */
+
     if (materials > 0) {
 
         progress += 25;
@@ -217,6 +338,7 @@ function updateLearningProgress(
     /*
      * AI Tutor
      */
+
     if (chatCount > 0) {
 
         progress += 25;
@@ -226,6 +348,7 @@ function updateLearningProgress(
     /*
      * Quiz
      */
+
     if (quizCount > 0) {
 
         progress += 25;
@@ -289,11 +412,11 @@ function updateStudySummary(
     tasks,
     materials,
     chatCount,
-    quizCount
+    quizCount,
+    score
 ) {
 
     if (!studySummary) {
-
         return;
     }
 
@@ -310,7 +433,9 @@ function updateStudySummary(
 
         `AI study questions: ${chatCount}`,
 
-        `Quizzes completed: ${quizCount}`
+        `Quizzes completed: ${quizCount}`,
+
+        `Average quiz score: ${score}%`
     ];
 
 
@@ -357,6 +482,10 @@ function loadProgress() {
         getQuizCount();
 
 
+    const score =
+        getQuizScore();
+
+
     updateLearningProgress(
         tasks,
         materials,
@@ -369,7 +498,8 @@ function loadProgress() {
         tasks,
         materials,
         chatCount,
-        quizCount
+        quizCount,
+        score
     );
 }
 
