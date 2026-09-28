@@ -24,7 +24,9 @@
 
 </head>
 
+
 <body>
+
 
     <header class="dashboard-header">
 
@@ -52,9 +54,16 @@
     </header>
 
 
+
     <main class="materials-page">
 
+
+        <!-- =========================================
+             STUDY MATERIALS CONTAINER
+        ========================================== -->
+
         <section class="materials-container">
+
 
             <div class="materials-header">
 
@@ -70,19 +79,24 @@
             </div>
 
 
+
+            <!-- =========================================
+                 UPLOAD FORM
+            ========================================== -->
+
             <form
-                id="materialForm"
+                id="uploadForm"
                 class="upload-form"
             >
 
-                <label for="fileInput">
+                <label for="materialFile">
                     Upload Study Material
                 </label>
 
 
                 <input
                     type="file"
-                    id="fileInput"
+                    id="materialFile"
                     accept=".pdf,.txt"
                     required
                 >
@@ -95,6 +109,11 @@
             </form>
 
 
+
+            <!-- =========================================
+                 MATERIALS LIST
+            ========================================== -->
+
             <section class="materials-list">
 
                 <h2>
@@ -102,7 +121,7 @@
                 </h2>
 
 
-                <div id="materialList">
+                <div id="materialsList">
 
                     <div class="empty-materials">
 
@@ -116,8 +135,14 @@
 
             </section>
 
+
         </section>
 
+
+
+        <!-- =========================================
+             AI SUMMARY CONTAINER
+        ========================================== -->
 
         <section
             id="materialContent"
@@ -125,14 +150,24 @@
             style="display: none;"
         >
 
+
             <h2>
                 AI SUMMARY
             </h2>
 
 
+            <!-- =====================================
+                 AI SUMMARY CONTENT
+            ====================================== -->
+
             <div id="aiSummaryContent">
             </div>
 
+
+
+            <!-- =====================================
+                 DOWNLOAD AI SUMMARY BUTTON
+            ====================================== -->
 
             <button
                 type="button"
@@ -153,12 +188,16 @@
                 Download AI Summary
             </button>
 
+
         </section>
+
 
     </main>
 
 
-    <script src="js/materials.js?v=6"></script>
+
+    <script src="js/materials.js?v=5"></script>
+
 
 </body>
 
