@@ -1,73 +1,40 @@
-/* =========================================================
-   AI STUDY ASSISTANT - CHAT
-   GitHub Pages / Frontend Version
-   ========================================================= */
-
 const USER_KEY = "user";
 const HISTORY_KEY = "study_assistant_chat_history";
 const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
 
-/* =========================================================
-   GET LOGGED-IN USER
-   ========================================================= */
+
+/* ================= USER ================= */
 
 const userData = localStorage.getItem(USER_KEY);
 
 if (!userData) {
     window.location.href = "login.html";
+    throw new Error("User is not logged in.");
 }
 
-let user = {};
-
-try {
-    user = JSON.parse(userData || "{}");
-} catch (error) {
-    console.error("Invalid user data:", error);
-    window.location.href = "login.html";
-}
+const user = JSON.parse(userData);
 
 const userId =
     user.user_id ||
     user.id ||
-    user.email ||
-    "guest";
+    user.email;
 
 
-/* =========================================================
-   GET HTML ELEMENTS
-   ========================================================= */
+/* ================= ELEMENTS ================= */
 
-const chatForm =
-    document.getElementById("chatForm");
-
-const chatInput =
-    document.getElementById("chatInput");
-
-const chatMessages =
-    document.getElementById("chatMessages");
-
-const subjectInput =
-    document.getElementById("subjectInput");
-
-const micButton =
-    document.getElementById("voiceButton");
-
-const voiceStatus =
-    document.getElementById("voiceStatus");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const subjectInput = document.getElementById("subjectInput");
+const chatMessages = document.getElementById("chatMessages");
+const voiceButton = document.getElementById("voiceButton");
+const voiceStatus = document.getElementById("voiceStatus");
 
 
-/* =========================================================
-   ADD MESSAGE TO CHAT
-   ========================================================= */
+/* ================= MESSAGE ================= */
 
 function addMessage(text, sender) {
 
-    if (!chatMessages) {
-        return;
-    }
-
-    const message =
-        document.createElement("div");
+    const message = document.createElement("div");
 
     message.className =
         sender === "user"
@@ -83,9 +50,7 @@ function addMessage(text, sender) {
 }
 
 
-/* =========================================================
-   SAVE CHAT HISTORY
-   ========================================================= */
+/* ================= SAVE CHAT HISTORY ================= */
 
 function saveChatHistory(question, answer) {
 
@@ -97,9 +62,10 @@ function saveChatHistory(question, answer) {
             localStorage.getItem(HISTORY_KEY) || "[]"
         );
 
-    } catch (error) {
+    } catch {
 
         history = [];
+
     }
 
     if (!Array.isArray(history)) {
@@ -125,11 +91,9 @@ function saveChatHistory(question, answer) {
 }
 
 
-/* =========================================================
-   SAVE CHAT TOPIC
-   ========================================================= */
+/* ================= SAVE TOPICS ================= */
 
-function saveChatTopic(subject, question) {
+function saveChatTopic(question) {
 
     let topics = [];
 
@@ -139,9 +103,10 @@ function saveChatTopic(subject, question) {
             localStorage.getItem(CHAT_TOPICS_KEY) || "[]"
         );
 
-    } catch (error) {
+    } catch {
 
         topics = [];
+
     }
 
     if (!Array.isArray(topics)) {
@@ -151,8 +116,6 @@ function saveChatTopic(subject, question) {
     topics.push({
 
         user_id: userId,
-
-        subject: subject,
 
         topic: question,
 
@@ -167,9 +130,7 @@ function saveChatTopic(subject, question) {
 }
 
 
-/* =========================================================
-   SPEAK ANSWER
-   ========================================================= */
+/* ================= SPEAK ANSWER ================= */
 
 function speakAnswer(text) {
 
@@ -192,14 +153,13 @@ function speakAnswer(text) {
 }
 
 
-/* =========================================================
-   PYTHON ANSWERS
-   ========================================================= */
+/* =====================================================
+   PYTHON
+===================================================== */
 
 function pythonAnswer(question) {
 
     const q = question.toLowerCase();
-
 
     if (
         q.includes("string") ||
@@ -377,44 +337,8 @@ class Dog(Animal):
     }
 
 
-    if (q.includes("class")) {
-
-        return `1. A class is a blueprint for creating objects.
-
-2. It can contain attributes and methods.
-
-Example:
-
-class Student:
-    def study(self):
-        print("Studying")
-
-3. The class describes what an object can contain and do.
-
-4. Objects are created from classes.`;
-    }
-
-
-    if (q.includes("object")) {
-
-        return `1. An object is an instance of a class.
-
-2. A class defines the structure and behavior.
-
-3. The object is the actual entity created from that class.
-
-Example:
-
-student1 = Student()
-
-4. Here, student1 is an object of the Student class.`;
-    }
-
-
-    if (
-        q.includes("exception") ||
-        q.includes("error handling")
-    ) {
+    if (q.includes("exception") ||
+        q.includes("error handling")) {
 
         return `1. Exception handling is used to handle errors that occur while a program is running.
 
@@ -514,129 +438,57 @@ print("Age:", 21)`;
 }
 
 
-/* =========================================================
-   JAVA ANSWERS
-   ========================================================= */
+/* =====================================================
+   JAVA
+===================================================== */
 
 function javaAnswer(question) {
 
-    const q = question.toLowerCase();
+    const q = question.toLowerCase().trim();
 
 
     if (
         q.includes("what is java") ||
         q === "java" ||
         q.includes("define java") ||
-        q.includes("java meaning")
+        q.includes("java meaning") ||
+        q === "is java" ||
+        q.includes("is java") ||
+        q.includes("java definition")
     ) {
 
-        return `1. Definition: Java is a high-level, object-oriented programming language used to build different types of applications.
+        return `1. Java is a high-level, object-oriented programming language.
 
-2. Simple explanation: Java allows developers to write programs that can run on different platforms using the Java Virtual Machine.
+2. It was developed by Sun Microsystems and was released in 1995.
 
-3. Example: Java is widely used for web applications, enterprise applications, Android development, and software applications.
+3. Java is designed to be platform independent.
 
-4. Java follows the principle "Write Once, Run Anywhere."`;
+4. Java programs are compiled into bytecode.
+
+5. The bytecode runs on the Java Virtual Machine, also called JVM.
+
+6. Java is commonly used for web applications, desktop applications, enterprise software, Android development, and many other applications.
+
+Example:
+
+class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello");
+    }
+}
+
+7. Java is popular because of its object-oriented features, portability, security, and large ecosystem.`;
     }
 
 
     if (
-        q.includes("features of java") ||
-        q.includes("java features")
-    ) {
-
-        return `1. Java is object-oriented.
-
-2. Java is platform independent.
-
-3. Java is secure.
-
-4. Java is robust and reliable.
-
-5. Java supports multithreading.
-
-6. Java provides automatic memory management.
-
-7. Java follows the principle "Write Once, Run Anywhere."`;
-    }
-
-
-    if (
-        q.includes("advantages of java") ||
-        q.includes("java advantages")
-    ) {
-
-        return `1. Java is platform independent.
-
-2. It supports object-oriented programming.
-
-3. It provides security features.
-
-4. It supports reusable code.
-
-5. It has automatic memory management.
-
-6. Java is widely used for developing different types of applications.`;
-    }
-
-
-    if (
-        q.includes("jvm") ||
-        q.includes("java virtual machine")
-    ) {
-
-        return `1. JVM stands for Java Virtual Machine.
-
-2. JVM executes Java bytecode.
-
-3. It converts bytecode into instructions that the computer can execute.
-
-4. JVM allows Java programs to run on different operating systems.
-
-5. JVM is an important part of Java's platform independence.`;
-    }
-
-
-    if (
-        q.includes("jre") ||
-        q.includes("java runtime environment")
-    ) {
-
-        return `1. JRE stands for Java Runtime Environment.
-
-2. JRE provides the environment required to run Java applications.
-
-3. It contains the JVM and required Java libraries.
-
-4. JRE is mainly used for running Java programs.`;
-    }
-
-
-    if (
-        q.includes("jdk") ||
-        q.includes("java development kit")
-    ) {
-
-        return `1. JDK stands for Java Development Kit.
-
-2. JDK is used to develop Java applications.
-
-3. It contains development tools such as the Java compiler.
-
-4. JDK includes the JRE and development tools.
-
-5. Developers normally install the JDK to create Java programs.`;
-    }
-
-
-    if (
-        q.includes("java class") ||
-        q.includes("class in java")
+        q.includes("class") &&
+        q.includes("java")
     ) {
 
         return `1. A class in Java is a blueprint used to create objects.
 
-2. A class can contain variables and methods.
+2. It can contain variables and methods.
 
 Example:
 
@@ -648,9 +500,48 @@ class Student {
     }
 }
 
-3. Objects can be created from the class.
+3. Objects are created from classes.
 
-4. Classes are an important part of object-oriented programming.`;
+4. Classes are an important part of object-oriented programming in Java.`;
+    }
+
+
+    if (q.includes("object")) {
+
+        return `1. An object is an instance of a class.
+
+2. It represents a real entity created from a class.
+
+Example:
+
+Student s1 = new Student();
+
+3. Here, s1 is an object of the Student class.
+
+4. Objects can access the variables and methods defined inside their class.`;
+    }
+
+
+    if (q.includes("inheritance")) {
+
+        return `1. Inheritance allows one Java class to acquire properties and methods from another class.
+
+2. The class being inherited from is called the parent class.
+
+3. The class that inherits is called the child class.
+
+Example:
+
+class Animal {
+    void sound() {
+        System.out.println("Animal sound");
+    }
+}
+
+class Dog extends Animal {
+}
+
+4. Dog inherits the sound() method from Animal.`;
     }
 
 
@@ -658,9 +549,9 @@ class Student {
 }
 
 
-/* =========================================================
-   SQL ANSWERS
-   ========================================================= */
+/* =====================================================
+   SQL
+===================================================== */
 
 function sqlAnswer(question) {
 
@@ -702,9 +593,7 @@ INSERT INTO students
 VALUES
 ("Ravi", 21);
 
-2. The column names identify where the values should be stored.
-
-3. INSERT adds a new row to the table.`;
+2. INSERT adds a new row to the table.`;
     }
 
 
@@ -720,9 +609,7 @@ WHERE name = "Ravi";
 
 2. SET specifies the new value.
 
-3. WHERE identifies which records should be changed.
-
-4. Without an appropriate WHERE condition, multiple rows may be modified.`;
+3. WHERE identifies which records should be changed.`;
     }
 
 
@@ -749,14 +636,14 @@ WHERE id = 5;
 
 3. A primary key cannot contain NULL values.
 
-4. Example:
+Example:
 
 CREATE TABLE students (
     id INT PRIMARY KEY,
     name VARCHAR(50)
 );
 
-5. Here, id uniquely identifies each student.`;
+4. Here, id uniquely identifies each student.`;
     }
 
 
@@ -768,13 +655,12 @@ CREATE TABLE students (
 
 3. It helps maintain relationships between related records.
 
-4. Example:
+Example:
 
-student_id INT,
 FOREIGN KEY (student_id)
 REFERENCES students(id)
 
-5. This connects student_id with the students table.`;
+4. This connects records between the related tables.`;
     }
 
 
@@ -782,9 +668,9 @@ REFERENCES students(id)
 }
 
 
-/* =========================================================
-   HTML ANSWERS
-   ========================================================= */
+/* =====================================================
+   HTML
+===================================================== */
 
 function htmlAnswer(question) {
 
@@ -802,7 +688,7 @@ function htmlAnswer(question) {
 
 3. All other HTML elements are placed inside the <html> element.
 
-4. A basic HTML structure looks like this:
+Example:
 
 <html>
     <head>
@@ -814,14 +700,14 @@ function htmlAnswer(question) {
     </body>
 </html>
 
-5. The <head> contains information about the webpage, while the <body> contains the visible webpage content.`;
+4. Therefore, <html> is called the root element of an HTML document.`;
     }
 
 
     if (
         q.includes("anchor") ||
         q.includes("href") ||
-        q.includes("hyperlink")
+        q.includes("link")
     ) {
 
         return `1. The HTML anchor tag is used to create a hyperlink.
@@ -836,9 +722,7 @@ Example:
     Visit Website
 </a>
 
-4. When the user clicks the link, the browser opens the specified destination.
-
-5. Anchor tags can also link to another page, section, email address, or file.`;
+4. Anchor tags can link to another webpage, section, email address, or file.`;
     }
 
 
@@ -888,9 +772,9 @@ Example:
 }
 
 
-/* =========================================================
-   CSS ANSWERS
-   ========================================================= */
+/* =====================================================
+   CSS
+===================================================== */
 
 function cssAnswer(question) {
 
@@ -929,17 +813,17 @@ Example:
 
 2. It is mainly used to arrange elements in a row or column.
 
-3. Example:
+Example:
 
 .container {
     display: flex;
 }
 
-4. justify-content controls alignment along the main axis.
+3. justify-content controls alignment along the main axis.
 
-5. align-items controls alignment along the cross axis.
+4. align-items controls alignment along the cross axis.
 
-6. Flexbox is useful for navigation bars, cards, and centered layouts.`;
+5. Flexbox is useful for navigation bars, cards, and centered layouts.`;
     }
 
 
@@ -947,38 +831,16 @@ Example:
 
         return `1. CSS Grid is a layout system designed for rows and columns.
 
-2. Example:
+Example:
 
 .container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
 }
 
-3. Grid is useful when you need two-dimensional layouts.
+2. Grid is useful when you need two-dimensional layouts.
 
-4. It is commonly used for page layouts, galleries, and card sections.`;
-    }
-
-
-    if (
-        q.includes("margin") ||
-        q.includes("padding")
-    ) {
-
-        return `1. Margin is the space outside an element.
-
-2. Padding is the space inside an element between its content and border.
-
-3. Example:
-
-.box {
-    margin: 20px;
-    padding: 20px;
-}
-
-4. Margin creates space around the element.
-
-5. Padding creates space inside the element.`;
+3. It is commonly used for page layouts, galleries, and card sections.`;
     }
 
 
@@ -986,9 +848,9 @@ Example:
 }
 
 
-/* =========================================================
-   JAVASCRIPT ANSWERS
-   ========================================================= */
+/* =====================================================
+   JAVASCRIPT
+===================================================== */
 
 function javascriptAnswer(question) {
 
@@ -1016,7 +878,7 @@ Example:
 
 const pi = 3.14;
 
-4. var is the older variable declaration keyword and is generally avoided in modern JavaScript when let or const is suitable.`;
+4. var is the older variable declaration keyword.`;
     }
 
 
@@ -1062,61 +924,26 @@ let numbers = [10, 20, 30];
     }
 
 
-    if (q.includes("dom")) {
-
-        return `1. DOM stands for Document Object Model.
-
-2. The DOM represents an HTML document as objects.
-
-3. JavaScript can use the DOM to change webpage content, styles, and elements.
-
-Example:
-
-document.getElementById("title").textContent = "Hello";
-
-4. DOM manipulation makes webpages interactive.`;
-    }
-
-
     return null;
 }
 
 
-/* =========================================================
-   OOPS ANSWERS
-   ========================================================= */
+/* =====================================================
+   OOPS
+===================================================== */
 
 function oopsAnswer(question) {
 
     const q = question.toLowerCase();
 
 
-    if (q.includes("oops") || q.includes("oop")) {
-
-        return `1. OOP stands for Object-Oriented Programming.
-
-2. It is a programming paradigm based on objects and classes.
-
-3. The main concepts of OOP are:
-
-- Encapsulation
-- Inheritance
-- Polymorphism
-- Abstraction
-
-4. OOP helps organize programs into reusable and manageable components.`;
-    }
-
-
     if (q.includes("encapsulation")) {
 
         return `1. Encapsulation means combining data and the methods that operate on that data inside a class.
 
-2. It also involves controlling access to internal data.
+2. It also involves controlling access to the internal data.
 
-3. Encapsulation helps protect data.
-
-4. It keeps the implementation organized and improves maintainability.`;
+3. Encapsulation helps protect data and keeps the implementation organized.`;
     }
 
 
@@ -1148,7 +975,7 @@ class Cat:
 
 3. In Python, abstraction can be implemented using abstract base classes.
 
-4. The user can focus on what an operation does rather than how it is internally implemented.`;
+4. The user can focus on what an operation does rather than how it works internally.`;
     }
 
 
@@ -1156,31 +983,13 @@ class Cat:
 }
 
 
-/* =========================================================
-   GENERAL ANSWERS
-   ========================================================= */
+/* =====================================================
+   GENERAL ANSWER
+===================================================== */
 
-function generalAnswer(question, subject) {
+function generalAnswer(question) {
 
-    const q =
-        question.toLowerCase().trim();
-
-    const subjectText =
-        subject
-            ? subject.trim()
-            : "";
-
-
-    if (
-        q.includes("hello") ||
-        q.includes("hi") ||
-        q.includes("hey")
-    ) {
-
-        return `Hello. I am your AI Study Assistant.
-
-You can ask me questions about Python, Java, HTML, CSS, JavaScript, SQL, OOP, and other study topics.`;
-    }
+    const q = question.toLowerCase();
 
 
     if (
@@ -1202,12 +1011,10 @@ You can ask me questions about Python, Java, HTML, CSS, JavaScript, SQL, OOP, an
 
 2. To understand it correctly, focus on what it means, how it works, and where it is used.
 
-3. Subject: ${subjectText || "General Study"}
-
-4. Example:
+3. Example:
 Study the definition first, then look at a simple real-world or programming example.
 
-5. If you want a more specific explanation, ask about its definition, working, advantages, disadvantages, or example.`;
+4. You can also ask about its working, advantages, disadvantages, or examples.`;
     }
 
 
@@ -1223,9 +1030,7 @@ Study the definition first, then look at a simple real-world or programming exam
 
 3. The second concept should be understood in the same way.
 
-4. The important difference depends on their purpose, behavior, and usage.
-
-5. Give me the two exact concepts if you want a direct point-by-point comparison.`;
+4. Their main differences depend on their purpose, behavior, and usage.`;
     }
 
 
@@ -1236,11 +1041,11 @@ Study the definition first, then look at a simple real-world or programming exam
 
         return `1. The reason depends on the purpose of the concept you are asking about.
 
-2. In programming, a feature is usually introduced to make code easier to write, reuse, or understand.
+2. In programming, features are usually introduced to make code easier to write, reuse, maintain, or understand.
 
-3. Its exact benefit depends on the specific topic.
+3. The exact benefit depends on the specific topic.
 
-4. The best way to understand it is to connect the feature with a simple example.`;
+4. A simple example can make the concept easier to understand.`;
     }
 
 
@@ -1248,13 +1053,13 @@ Study the definition first, then look at a simple real-world or programming exam
 
         return `1. First identify the goal of the task.
 
-2. Then divide the task into smaller steps.
+2. Divide the task into smaller steps.
 
 3. Apply the appropriate concept or syntax.
 
 4. Test the result with a simple example.
 
-5. If you tell me the exact topic, I can explain the steps specifically for it.`;
+5. If you provide the exact topic, I can explain it step by step.`;
     }
 
 
@@ -1264,17 +1069,17 @@ Please include the exact topic or concept in your question so I can give you a r
 }
 
 
-/* =========================================================
+/* =====================================================
    MAIN ANSWER ENGINE
-   ========================================================= */
+===================================================== */
 
-function generateStudyAnswer(question, subject) {
+function generateStudyAnswer(subject, question) {
 
-    const q =
-        question.toLowerCase().trim();
+    const q = question.toLowerCase();
 
-    const subjectText =
+    const subjectName =
         subject.toLowerCase().trim();
+
 
     let answer = null;
 
@@ -1282,21 +1087,19 @@ function generateStudyAnswer(question, subject) {
     /* JAVA */
 
     if (
-        subjectText.includes("java") ||
-        q.includes("java") ||
-        q.includes("jvm") ||
-        q.includes("jdk") ||
-        q.includes("jre")
+        subjectName.includes("java") ||
+        q.includes("java")
     ) {
 
         answer = javaAnswer(question);
+
     }
 
 
     /* PYTHON */
 
     if (!answer && (
-        subjectText.includes("python") ||
+        subjectName.includes("python") ||
         q.includes("python") ||
         q.includes("string") ||
         q.includes("variable") ||
@@ -1312,14 +1115,15 @@ function generateStudyAnswer(question, subject) {
     )) {
 
         answer = pythonAnswer(question);
+
     }
 
 
     /* SQL */
 
     if (!answer && (
-        subjectText.includes("sql") ||
-        subjectText.includes("mysql") ||
+        subjectName.includes("sql") ||
+        subjectName.includes("mysql") ||
         q.includes("sql") ||
         q.includes("mysql") ||
         q.includes("primary key") ||
@@ -1331,27 +1135,29 @@ function generateStudyAnswer(question, subject) {
     )) {
 
         answer = sqlAnswer(question);
+
     }
 
 
     /* HTML */
 
     if (!answer && (
-        subjectText.includes("html") ||
+        subjectName.includes("html") ||
         q.includes("html") ||
         q.includes("anchor") ||
         q.includes("href") ||
-        q.includes("hyperlink")
+        q.includes("root element")
     )) {
 
         answer = htmlAnswer(question);
+
     }
 
 
     /* CSS */
 
     if (!answer && (
-        subjectText.includes("css") ||
+        subjectName.includes("css") ||
         q.includes("css") ||
         q.includes("media query") ||
         q.includes("responsive") ||
@@ -1360,38 +1166,39 @@ function generateStudyAnswer(question, subject) {
     )) {
 
         answer = cssAnswer(question);
+
     }
 
 
     /* JAVASCRIPT */
 
     if (!answer && (
-        subjectText.includes("javascript") ||
-        subjectText === "js" ||
+        subjectName.includes("javascript") ||
+        subjectName.includes("js") ||
         q.includes("javascript") ||
         q.includes("array") ||
-        q.includes("dom") ||
         q.includes("let") ||
         q.includes("const")
     )) {
 
         answer = javascriptAnswer(question);
+
     }
 
 
     /* OOPS */
 
     if (!answer && (
-        subjectText.includes("oops") ||
-        subjectText.includes("oop") ||
+        subjectName.includes("oops") ||
+        subjectName.includes("object oriented") ||
         q.includes("oops") ||
-        q.includes("oop") ||
         q.includes("encapsulation") ||
         q.includes("polymorphism") ||
         q.includes("abstraction")
     )) {
 
         answer = oopsAnswer(question);
+
     }
 
 
@@ -1399,11 +1206,8 @@ function generateStudyAnswer(question, subject) {
 
     if (!answer) {
 
-        answer =
-            generalAnswer(
-                question,
-                subject
-            );
+        answer = generalAnswer(question);
+
     }
 
 
@@ -1411,131 +1215,96 @@ function generateStudyAnswer(question, subject) {
 }
 
 
-/* =========================================================
+/* =====================================================
    ASK QUESTION
-   ========================================================= */
+===================================================== */
 
-if (chatForm) {
+chatForm.addEventListener(
+    "submit",
+    function (event) {
 
-    chatForm.addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
+        event.preventDefault();
 
 
-            const question =
-                chatInput
-                    ? chatInput.value.trim()
-                    : "";
+        const subject =
+            subjectInput.value.trim();
 
 
-            const subject =
-                subjectInput
-                    ? subjectInput.value.trim()
-                    : "";
+        const question =
+            chatInput.value.trim();
 
 
-            if (!subject) {
+        if (!subject) {
 
-                if (voiceStatus) {
+            alert("Please enter a subject.");
 
-                    voiceStatus.textContent =
-                        "Please enter a subject.";
-                }
+            subjectInput.focus();
 
-                if (subjectInput) {
-                    subjectInput.focus();
-                }
-
-                return;
-            }
+            return;
+        }
 
 
-            if (!question) {
-
-                if (voiceStatus) {
-
-                    voiceStatus.textContent =
-                        "Please enter a question.";
-                }
-
-                if (chatInput) {
-                    chatInput.focus();
-                }
-
-                return;
-            }
+        if (!question) {
+            return;
+        }
 
 
-            /* SHOW USER QUESTION */
+        /* SHOW USER QUESTION */
 
-            addMessage(
-                `${subject}: ${question}`,
-                "user"
-            );
-
-
-            /* CLEAR QUESTION ONLY */
-
-            if (chatInput) {
-                chatInput.value = "";
-            }
+        addMessage(
+            question,
+            "user"
+        );
 
 
-            /* GENERATE ANSWER */
+        /* CLEAR QUESTION ONLY */
 
-            const answer =
-                generateStudyAnswer(
-                    question,
-                    subject
-                );
+        chatInput.value = "";
 
 
-            /* SHOW AI ANSWER */
+        /* GENERATE ANSWER */
 
-            addMessage(
-                answer,
-                "ai"
-            );
-
-
-            /* SAVE HISTORY */
-
-            saveChatHistory(
-                question,
-                answer
-            );
-
-
-            /* SAVE TOPIC */
-
-            saveChatTopic(
+        const answer =
+            generateStudyAnswer(
                 subject,
                 question
             );
 
 
-            /* VOICE STATUS */
+        /* SHOW AI ANSWER */
 
-            if (voiceStatus) {
-
-                voiceStatus.textContent =
-                    "Answer received.";
-            }
-
-
-            /* SPEAK ANSWER */
-
-            speakAnswer(answer);
-        }
-    );
-}
+        addMessage(
+            answer,
+            "ai"
+        );
 
 
-/* =========================================================
+        /* SAVE FOR HISTORY */
+
+        saveChatHistory(
+            question,
+            answer
+        );
+
+
+        saveChatTopic(
+            question
+        );
+
+
+        /* VOICE ANSWER */
+
+        speakAnswer(
+            answer
+        );
+
+    }
+);
+
+
+/* =====================================================
    VOICE INPUT
-   ========================================================= */
+===================================================== */
 
 if (
     "webkitSpeechRecognition" in window ||
@@ -1563,69 +1332,77 @@ if (
         false;
 
 
-    if (micButton) {
+    voiceButton.addEventListener(
+        "click",
+        function () {
 
-        micButton.addEventListener(
-            "click",
-            function () {
+            try {
 
-                try {
+                recognition.start();
 
-                    recognition.start();
+                if (voiceStatus) {
 
-                    if (voiceStatus) {
+                    voiceStatus.textContent =
+                        "Listening...";
 
-                        voiceStatus.textContent =
-                            "Listening...";
-                    }
-
-                } catch (error) {
-
-                    console.log(
-                        "Voice recognition is already running."
-                    );
                 }
+
+            } catch (error) {
+
+                console.log(
+                    "Voice recognition already running."
+                );
+
             }
-        );
-    }
+
+        }
+    );
 
 
     recognition.onresult =
         function (event) {
 
             const transcript =
-                event
-                    .results[0][0]
-                    .transcript;
+                event.results[0][0].transcript;
 
 
-            if (chatInput) {
-
-                chatInput.value =
-                    transcript;
-            }
+            chatInput.value =
+                transcript;
 
 
             if (voiceStatus) {
 
                 voiceStatus.textContent =
-                    "Voice input received. Press Ask.";
+                    "Voice captured.";
+
             }
+
+        };
+
+
+    recognition.onstart =
+        function () {
+
+            if (voiceStatus) {
+
+                voiceStatus.textContent =
+                    "Listening...";
+
+            }
+
         };
 
 
     recognition.onend =
         function () {
 
-            if (
-                voiceStatus &&
-                voiceStatus.textContent ===
-                    "Listening..."
-            ) {
+            if (voiceStatus) {
 
                 voiceStatus.textContent =
-                    "Listening stopped.";
+                    "";
+
             }
+
         };
 
 
@@ -1640,105 +1417,41 @@ if (
 
             if (voiceStatus) {
 
-                if (
-                    event.error ===
-                    "not-allowed"
-                ) {
+                voiceStatus.textContent =
+                    "Voice recognition error. Please try again.";
 
-                    voiceStatus.textContent =
-                        "Microphone permission was denied.";
-
-                } else {
-
-                    voiceStatus.textContent =
-                        "Voice input could not be used. Please try again.";
-                }
             }
+
         };
 
 } else {
 
-    if (micButton) {
+    if (voiceButton) {
 
-        micButton.disabled =
+        voiceButton.disabled =
             true;
 
-        micButton.title =
-            "Voice input is not supported by this browser.";
+        voiceButton.title =
+            "Voice recognition is not supported in this browser.";
+
     }
 
-
-    if (voiceStatus) {
-
-        voiceStatus.textContent =
-            "Voice input is not supported by this browser.";
-    }
 }
 
 
-/* =========================================================
-   LOAD CHAT HISTORY
-   ========================================================= */
+/* =====================================================
+   IMPORTANT
+   CHAT STARTS FRESH
+===================================================== */
 
-function loadChatHistory() {
+/*
+    Previous chats are still saved in localStorage.
 
-    let history = [];
+    They can be used by the History feature.
 
-    try {
+    BUT previous chats are NOT loaded automatically
+    when the Chat page opens.
 
-        history = JSON.parse(
-            localStorage.getItem(
-                HISTORY_KEY
-            ) || "[]"
-        );
-
-    } catch (error) {
-
-        history = [];
-    }
-
-
-    if (!Array.isArray(history)) {
-        return;
-    }
-
-
-    const userHistory =
-        history.filter(
-            item =>
-                String(item.user_id) ===
-                String(userId)
-        );
-
-
-    userHistory.forEach(
-        function (item) {
-
-            const savedQuestion =
-                item.question || "";
-
-
-            const savedAnswer =
-                item.answer || "";
-
-
-            addMessage(
-                savedQuestion,
-                "user"
-            );
-
-
-            addMessage(
-                savedAnswer,
-                "ai"
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   LOAD PREVIOUS CHAT
-   ========================================================= */
-
-loadChatHistory();
+    Therefore every time the Chat page is opened,
+    the user sees a fresh chat.
+*/
