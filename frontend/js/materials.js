@@ -3,27 +3,51 @@
    MATERIALS - GITHUB PAGES VERSION
 ========================================================= */
 
-const uploadForm = document.getElementById("uploadForm");
-const materialFile = document.getElementById("materialFile");
-const materialsList = document.getElementById("materialsList");
-const materialContent = document.getElementById("materialContent");
-const aiSummaryContent = document.getElementById("aiSummaryContent");
-const downloadSummaryButton = document.getElementById(
-    "downloadSummaryButton"
-);
+
+const uploadForm =
+    document.getElementById("uploadForm");
+
+
+const materialFile =
+    document.getElementById("materialFile");
+
+
+const materialsList =
+    document.getElementById("materialsList");
+
+
+const materialContent =
+    document.getElementById("materialContent");
+
+
+const aiSummaryContent =
+    document.getElementById("aiSummaryContent");
+
+
+const downloadSummaryButton =
+    document.getElementById(
+        "downloadSummaryButton"
+    );
 
 
 /* =========================================================
    USER
 ========================================================= */
 
-const userData = localStorage.getItem("user");
+const userData =
+    localStorage.getItem("user");
+
 
 if (!userData) {
-    window.location.href = "login.html";
+
+    window.location.href =
+        "login.html";
 }
 
-const user = JSON.parse(userData);
+
+const user =
+    JSON.parse(userData);
+
 
 const userId =
     user.user_id ||
@@ -32,22 +56,22 @@ const userId =
 
 
 /* =========================================================
-   INDEXED DB
+   DATABASE
 ========================================================= */
 
-const DB_NAME = "AIStudyAssistantMaterials";
-const DB_VERSION = 1;
-const STORE_NAME = "materials";
+const DB_NAME =
+    "AIStudyAssistantMaterials";
+
+
+const DB_VERSION =
+    1;
+
+
+const STORE_NAME =
+    "materials";
+
 
 let database = null;
-
-
-/* =========================================================
-   CURRENT SUMMARY
-========================================================= */
-
-let currentSummaryMaterial = null;
-let currentSummaryPoints = [];
 
 
 /* =========================================================
@@ -56,58 +80,68 @@ let currentSummaryPoints = [];
 
 function openDatabase() {
 
-    return new Promise((resolve, reject) => {
+    return new Promise(
+        function (resolve, reject) {
 
-        const request = indexedDB.open(
-            DB_NAME,
-            DB_VERSION
-        );
-
-        request.onupgradeneeded = function (event) {
-
-            const db = event.target.result;
-
-            if (
-                !db.objectStoreNames.contains(
-                    STORE_NAME
-                )
-            ) {
-
-                const store =
-                    db.createObjectStore(
-                        STORE_NAME,
-                        {
-                            keyPath: "id"
-                        }
-                    );
-
-                store.createIndex(
-                    "userId",
-                    "userId",
-                    {
-                        unique: false
-                    }
+            const request =
+                indexedDB.open(
+                    DB_NAME,
+                    DB_VERSION
                 );
-            }
-        };
 
-        request.onsuccess = function (event) {
 
-            database =
-                event.target.result;
+            request.onupgradeneeded =
+                function (event) {
 
-            resolve(database);
-        };
+                    const db =
+                        event.target.result;
 
-        request.onerror = function () {
 
-            reject(
-                new Error(
-                    "Unable to open materials database."
-                )
-            );
-        };
-    });
+                    if (
+                        !db.objectStoreNames.contains(
+                            STORE_NAME
+                        )
+                    ) {
+
+                        const store =
+                            db.createObjectStore(
+                                STORE_NAME,
+                                {
+                                    keyPath: "id"
+                                }
+                            );
+
+
+                        store.createIndex(
+                            "user_id",
+                            "user_id",
+                            {
+                                unique: false
+                            }
+                        );
+                    }
+                };
+
+
+            request.onsuccess =
+                function (event) {
+
+                    database =
+                        event.target.result;
+
+                    resolve(database);
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+                };
+        }
+    );
 }
 
 
@@ -120,116 +154,133 @@ function showMessage(
     type = "success"
 ) {
 
-    const oldMessage =
-        document.querySelector(
-            ".material-message"
+    let messageElement =
+        document.getElementById(
+            "materialMessage"
         );
 
-    if (oldMessage) {
-        oldMessage.remove();
+
+    if (!messageElement) {
+
+        messageElement =
+            document.createElement(
+                "div"
+            );
+
+
+        messageElement.id =
+            "materialMessage";
+
+
+        if (uploadForm) {
+
+            uploadForm.insertAdjacentElement(
+                "afterend",
+                messageElement
+            );
+        }
     }
 
-    const messageBox =
-        document.createElement("div");
 
-    messageBox.className =
-        "material-message";
-
-    messageBox.textContent =
+    messageElement.textContent =
         message;
 
-    messageBox.style.marginTop =
+
+    messageElement.style.marginTop =
         "15px";
 
-    messageBox.style.padding =
-        "10px 15px";
 
-    messageBox.style.borderRadius =
-        "8px";
+    messageElement.style.padding =
+        "10px";
 
-    messageBox.style.fontWeight =
+
+    messageElement.style.textAlign =
+        "center";
+
+
+    messageElement.style.fontWeight =
         "600";
 
-    if (type === "error") {
 
-        messageBox.style.backgroundColor =
-            "#ffe5e5";
-
-        messageBox.style.color =
-            "#b00020";
-
-    } else {
-
-        messageBox.style.backgroundColor =
-            "#e5f7e5";
-
-        messageBox.style.color =
-            "#176b17";
-    }
-
-    uploadForm.parentNode.insertBefore(
-        messageBox,
-        uploadForm.nextSibling
-    );
-
-    setTimeout(
-        function () {
-
-            if (messageBox) {
-                messageBox.remove();
-            }
-
-        },
-        3000
-    );
+    messageElement.style.color =
+        type === "error"
+            ? "red"
+            : "green";
 }
 
 
 /* =========================================================
    SAVE MATERIAL METADATA
+   Used by Progress page
 ========================================================= */
 
-function saveMaterialMetadata(material) {
+function saveMaterialMetadata(
+    material
+) {
 
-    const existing =
-        JSON.parse(
-            localStorage.getItem(
-                "study_assistant_materials"
-            ) || "[]"
-        );
+    let materials = [];
 
-    const index =
-        existing.findIndex(
-            item =>
-                item.id === material.id
-        );
 
-    const metadata = {
+    try {
 
-        id: material.id,
-        userId: material.userId,
-        filename: material.filename,
-        type: material.type,
-        size: material.size,
-        uploadedAt: material.uploadedAt
-    };
+        materials =
+            JSON.parse(
+                localStorage.getItem(
+                    "study_assistant_materials"
+                ) || "[]"
+            );
 
-    if (index >= 0) {
 
-        existing[index] =
-            metadata;
+        if (!Array.isArray(materials)) {
 
-    } else {
+            materials = [];
+        }
 
-        existing.push(
-            metadata
-        );
+    } catch (error) {
+
+        materials = [];
     }
 
-    localStorage.setItem(
-        "study_assistant_materials",
-        JSON.stringify(existing)
-    );
+
+    const alreadyExists =
+        materials.some(
+            item =>
+                String(item.id) ===
+                String(material.id)
+        );
+
+
+    if (!alreadyExists) {
+
+        materials.push({
+
+            id:
+                material.id,
+
+            user_id:
+                material.user_id,
+
+            filename:
+                material.filename,
+
+            size:
+                material.size,
+
+            type:
+                material.type,
+
+            saved_at:
+                material.saved_at
+        });
+
+
+        localStorage.setItem(
+            "study_assistant_materials",
+            JSON.stringify(
+                materials
+            )
+        );
+    }
 }
 
 
@@ -237,50 +288,72 @@ function saveMaterialMetadata(material) {
    REMOVE MATERIAL METADATA
 ========================================================= */
 
-function removeMaterialMetadata(materialId) {
+function removeMaterialMetadata(
+    materialId
+) {
 
-    const existing =
-        JSON.parse(
-            localStorage.getItem(
-                "study_assistant_materials"
-            ) || "[]"
-        );
+    let materials = [];
 
-    const updated =
-        existing.filter(
+
+    try {
+
+        materials =
+            JSON.parse(
+                localStorage.getItem(
+                    "study_assistant_materials"
+                ) || "[]"
+            );
+
+    } catch (error) {
+
+        materials = [];
+    }
+
+
+    materials =
+        materials.filter(
             item =>
-                item.id !== materialId
+                String(item.id) !==
+                String(materialId)
         );
+
 
     localStorage.setItem(
         "study_assistant_materials",
-        JSON.stringify(updated)
+        JSON.stringify(
+            materials
+        )
     );
 }
 
 
 /* =========================================================
-   SAVE MATERIAL
+   SAVE FILE TO INDEXEDDB
 ========================================================= */
 
-function saveMaterialToDatabase(material) {
+function saveMaterialToDatabase(
+    material
+) {
 
     return new Promise(
-        (resolve, reject) => {
+        function (resolve, reject) {
 
             const transaction =
                 database.transaction(
-                    [STORE_NAME],
+                    STORE_NAME,
                     "readwrite"
                 );
+
 
             const store =
                 transaction.objectStore(
                     STORE_NAME
                 );
 
+
             const request =
                 store.put(material);
+
 
             request.onsuccess =
                 function () {
@@ -288,13 +361,12 @@ function saveMaterialToDatabase(material) {
                     resolve();
                 };
 
+
             request.onerror =
                 function () {
 
                     reject(
-                        new Error(
-                            "Unable to save material."
-                        )
+                        request.error
                     );
                 };
         }
@@ -303,50 +375,58 @@ function saveMaterialToDatabase(material) {
 
 
 /* =========================================================
-   GET MATERIALS
+   GET ALL USER MATERIALS
 ========================================================= */
 
 function getMaterialsFromDatabase() {
 
     return new Promise(
-        (resolve, reject) => {
+        function (resolve, reject) {
 
             const transaction =
                 database.transaction(
-                    [STORE_NAME],
+                    STORE_NAME,
                     "readonly"
                 );
+
 
             const store =
                 transaction.objectStore(
                     STORE_NAME
                 );
 
+
             const request =
                 store.getAll();
+
 
             request.onsuccess =
                 function () {
 
                     const materials =
-                        request.result.filter(
-                            item =>
-                                item.userId ===
-                                userId
-                        );
+                        request.result
+                            .filter(
+                                material =>
+                                    String(
+                                        material.user_id
+                                    ) ===
+                                    String(
+                                        userId
+                                    )
+                            );
+
 
                     resolve(
                         materials
                     );
                 };
 
+
             request.onerror =
                 function () {
 
                     reject(
-                        new Error(
-                            "Unable to load materials."
-                        )
+                        request.error
                     );
                 };
         }
@@ -355,27 +435,34 @@ function getMaterialsFromDatabase() {
 
 
 /* =========================================================
-   GET SINGLE MATERIAL
+   GET ONE MATERIAL
 ========================================================= */
 
-function getMaterialFromDatabase(materialId) {
+function getMaterialFromDatabase(
+    materialId
+) {
 
     return new Promise(
-        (resolve, reject) => {
+        function (resolve, reject) {
 
             const transaction =
                 database.transaction(
-                    [STORE_NAME],
+                    STORE_NAME,
                     "readonly"
                 );
+
 
             const store =
                 transaction.objectStore(
                     STORE_NAME
                 );
 
+
             const request =
-                store.get(materialId);
+                store.get(
+                    materialId
+                );
+
 
             request.onsuccess =
                 function () {
@@ -385,13 +472,12 @@ function getMaterialFromDatabase(materialId) {
                     );
                 };
 
+
             request.onerror =
                 function () {
 
                     reject(
-                        new Error(
-                            "Unable to open material."
-                        )
+                        request.error
                     );
                 };
         }
@@ -400,27 +486,34 @@ function getMaterialFromDatabase(materialId) {
 
 
 /* =========================================================
-   DELETE MATERIAL
+   DELETE FROM INDEXEDDB
 ========================================================= */
 
-function deleteMaterialFromDatabase(materialId) {
+function deleteMaterialFromDatabase(
+    materialId
+) {
 
     return new Promise(
-        (resolve, reject) => {
+        function (resolve, reject) {
 
             const transaction =
                 database.transaction(
-                    [STORE_NAME],
+                    STORE_NAME,
                     "readwrite"
                 );
+
 
             const store =
                 transaction.objectStore(
                     STORE_NAME
                 );
 
+
             const request =
-                store.delete(materialId);
+                store.delete(
+                    materialId
+                );
+
 
             request.onsuccess =
                 function () {
@@ -428,13 +521,12 @@ function deleteMaterialFromDatabase(materialId) {
                     resolve();
                 };
 
+
             request.onerror =
                 function () {
 
                     reject(
-                        new Error(
-                            "Unable to delete material."
-                        )
+                        request.error
                     );
                 };
         }
@@ -443,14 +535,18 @@ function deleteMaterialFromDatabase(materialId) {
 
 
 /* =========================================================
-   FILE SIZE
+   FORMAT FILE SIZE
 ========================================================= */
 
-function formatFileSize(bytes) {
+function formatFileSize(
+    bytes
+) {
 
     if (bytes < 1024) {
+
         return `${bytes} B`;
     }
+
 
     if (bytes < 1024 * 1024) {
 
@@ -459,8 +555,10 @@ function formatFileSize(bytes) {
         ).toFixed(1)} KB`;
     }
 
+
     return `${(
-        bytes / (1024 * 1024)
+        bytes /
+        (1024 * 1024)
     ).toFixed(1)} MB`;
 }
 
@@ -476,9 +574,14 @@ async function loadMaterials() {
         const materials =
             await getMaterialsFromDatabase();
 
-        materialsList.innerHTML = "";
 
-        if (materials.length === 0) {
+        materialsList.innerHTML =
+            "";
+
+
+        if (
+            materials.length === 0
+        ) {
 
             materialsList.innerHTML = `
                 <div class="empty-materials">
@@ -491,8 +594,20 @@ async function loadMaterials() {
             return;
         }
 
+
+        materials.sort(
+            function (a, b) {
+
+                return (
+                    b.saved_at -
+                    a.saved_at
+                );
+            }
+        );
+
+
         materials.forEach(
-            material => {
+            function (material) {
 
                 addMaterialToPage(
                     material
@@ -500,14 +615,21 @@ async function loadMaterials() {
             }
         );
 
+
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Error loading materials:",
+            error
+        );
+
 
         materialsList.innerHTML = `
-            <p>
-                Unable to load materials.
-            </p>
+            <div class="empty-materials">
+                <p>
+                    Unable to load study materials.
+                </p>
+            </div>
         `;
     }
 }
@@ -517,76 +639,123 @@ async function loadMaterials() {
    ADD MATERIAL TO PAGE
 ========================================================= */
 
-function addMaterialToPage(material) {
+function addMaterialToPage(
+    material
+) {
 
-    const materialBox =
-        document.createElement("div");
+    const materialItem =
+        document.createElement(
+            "div"
+        );
 
-    materialBox.className =
-        "material-card";
 
-    materialBox.innerHTML = `
-        <h3>
-            ${escapeHtml(
-                material.filename
-            )}
-        </h3>
+    materialItem.className =
+        "material-item";
 
-        <p>
-            Saved material ·
-            ${formatFileSize(
-                material.size
-            )}
-        </p>
 
-        <div class="material-actions">
+    const content =
+        document.createElement(
+            "div"
+        );
 
-            <button
-                type="button"
-                class="view-material-button"
-            >
-                View
-            </button>
 
-            <button
-                type="button"
-                class="summary-material-button"
-            >
-                AI Summary
-            </button>
+    const heading =
+        document.createElement(
+            "h3"
+        );
 
-            <button
-                type="button"
-                class="delete-material-button"
-            >
-                Delete
-            </button>
 
-        </div>
-    `;
+    heading.textContent =
+        material.filename;
+
+
+    const description =
+        document.createElement(
+            "p"
+        );
+
+
+    description.textContent =
+        `Saved material · ${formatFileSize(
+            material.size
+        )}`;
+
+
+    content.appendChild(
+        heading
+    );
+
+
+    content.appendChild(
+        description
+    );
+
+
+    /* =====================================================
+       BUTTON CONTAINER
+    ===================================================== */
+
+    const buttonContainer =
+        document.createElement(
+            "div"
+        );
+
+
+    buttonContainer.className =
+        "material-buttons";
+
+
+    /* =====================================================
+       VIEW BUTTON
+    ===================================================== */
 
     const viewButton =
-        materialBox.querySelector(
-            ".view-material-button"
+        document.createElement(
+            "button"
         );
 
-    const summaryButton =
-        materialBox.querySelector(
-            ".summary-material-button"
-        );
 
-    const deleteButton =
-        materialBox.querySelector(
-            ".delete-material-button"
-        );
+    viewButton.type =
+        "button";
+
+
+    viewButton.textContent =
+        "View";
+
 
     viewButton.addEventListener(
         "click",
         function () {
 
-            viewMaterial(material);
+            viewMaterial(
+                material
+            );
         }
     );
+
+
+    buttonContainer.appendChild(
+        viewButton
+    );
+
+
+    /* =====================================================
+       AI SUMMARY BUTTON
+    ===================================================== */
+
+    const summaryButton =
+        document.createElement(
+            "button"
+        );
+
+
+    summaryButton.type =
+        "button";
+
+
+    summaryButton.textContent =
+        "AI Summary";
+
 
     summaryButton.addEventListener(
         "click",
@@ -599,6 +768,30 @@ function addMaterialToPage(material) {
         }
     );
 
+
+    buttonContainer.appendChild(
+        summaryButton
+    );
+
+
+    /* =====================================================
+       DELETE BUTTON
+    ===================================================== */
+
+    const deleteButton =
+        document.createElement(
+            "button"
+        );
+
+
+    deleteButton.type =
+        "button";
+
+
+    deleteButton.textContent =
+        "Delete";
+
+
     deleteButton.addEventListener(
         "click",
         function () {
@@ -609,8 +802,24 @@ function addMaterialToPage(material) {
         }
     );
 
+
+    buttonContainer.appendChild(
+        deleteButton
+    );
+
+
+    materialItem.appendChild(
+        content
+    );
+
+
+    materialItem.appendChild(
+        buttonContainer
+    );
+
+
     materialsList.appendChild(
-        materialBox
+        materialItem
     );
 }
 
@@ -619,52 +828,52 @@ function addMaterialToPage(material) {
    VIEW MATERIAL
 ========================================================= */
 
-async function viewMaterial(material) {
+async function viewMaterial(
+    material
+) {
 
     try {
 
-        const storedMaterial =
+        const savedMaterial =
             await getMaterialFromDatabase(
                 material.id
             );
 
-        if (
-            !storedMaterial ||
-            !storedMaterial.file
-        ) {
+
+        if (!savedMaterial) {
 
             showMessage(
-                "Material file not found.",
+                "Material not found.",
                 "error"
             );
 
             return;
         }
 
+
+        const blob =
+            savedMaterial.file;
+
+
         const fileUrl =
             URL.createObjectURL(
-                storedMaterial.file
+                blob
             );
+
 
         window.open(
             fileUrl,
             "_blank"
         );
 
-        setTimeout(
-            function () {
-
-                URL.revokeObjectURL(
-                    fileUrl
-                );
-
-            },
-            5000
-        );
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "View material error:",
+            error
+        );
+
 
         showMessage(
             "Unable to open material.",
@@ -675,568 +884,7 @@ async function viewMaterial(material) {
 
 
 /* =========================================================
-   CLEAN PDF TEXT
-========================================================= */
-
-function cleanPdfText(text) {
-
-    return text
-        .replace(/\r/g, " ")
-        .replace(/\n/g, " ")
-        .replace(/\s+/g, " ")
-        .replace(/➔/g, " ")
-        .replace(/#/g, " ")
-        .replace(/•/g, " ")
-        .replace(/\*\//g, "")
-        .replace(/\/\*/g, "")
-        .replace(/__/g, "")
-        .replace(/`/g, "")
-        .trim();
-}
-
-
-/* =========================================================
-   CREATE OOP SUMMARY
-========================================================= */
-
-function createOopSummary(text) {
-
-    const lowerText =
-        text.toLowerCase();
-
-    const points = [];
-
-
-    if (
-        lowerText.includes("object oriented") ||
-        lowerText.includes("oops")
-    ) {
-
-        points.push(
-            "OOP (Object-Oriented Programming) is a programming paradigm that organizes data and the code that operates on that data into objects."
-        );
-    }
-
-
-    if (
-        lowerText.includes("alan kay")
-    ) {
-
-        points.push(
-            "Alan Kay is one of the key people associated with the development of object-oriented programming concepts in the 1960s."
-        );
-    }
-
-
-    if (
-        lowerText.includes("programming paradigm") ||
-        lowerText.includes("paradigm")
-    ) {
-
-        points.push(
-            "A programming paradigm is a fundamental style or approach used to structure programs and solve programming problems."
-        );
-    }
-
-
-    if (
-        lowerText.includes("code reusability") ||
-        lowerText.includes("reusability")
-    ) {
-
-        points.push(
-            "Advantages of OOP include code reusability, improved maintainability, better readability, scalability, and data security through encapsulation."
-        );
-    }
-
-
-    if (
-        lowerText.includes("current object") ||
-        lowerText.includes("constructor") ||
-        lowerText.includes("__init__")
-    ) {
-
-        points.push(
-            "In Python, self refers to the current object of a class and is commonly used in instance methods and the __init__ constructor."
-        );
-
-        points.push(
-            "self is not a Python keyword; it is a conventional parameter name used to refer to the current object."
-        );
-    }
-
-
-    if (
-        lowerText.includes("class") &&
-        lowerText.includes("blueprint")
-    ) {
-
-        points.push(
-            "A class is a blueprint or template for creating objects. It defines the attributes and methods that describe an object's state and behavior."
-        );
-    }
-
-
-    if (
-        lowerText.includes("object") &&
-        lowerText.includes("instance")
-    ) {
-
-        points.push(
-            "An object is an instance of a class. It represents an entity with state (data or attributes) and behavior (methods or functions)."
-        );
-    }
-
-
-    if (
-        lowerText.includes("instance method")
-    ) {
-
-        points.push(
-            "An instance method is a function defined inside a class that operates on objects or instances of that class."
-        );
-    }
-
-
-    if (
-        lowerText.includes("encapsulation")
-    ) {
-
-        points.push(
-            "Encapsulation protects and controls access to internal data by combining data and methods inside a class."
-        );
-    }
-
-
-    if (
-        lowerText.includes("inheritance")
-    ) {
-
-        points.push(
-            "Inheritance allows a class to reuse attributes and methods from another class."
-        );
-    }
-
-
-    if (
-        lowerText.includes("polymorphism")
-    ) {
-
-        points.push(
-            "Polymorphism allows the same interface or operation to behave differently for different objects."
-        );
-    }
-
-
-    if (
-        lowerText.includes("abstraction")
-    ) {
-
-        points.push(
-            "Abstraction hides unnecessary implementation details and shows only the essential features."
-        );
-    }
-
-
-    if (points.length > 0) {
-
-        return points;
-    }
-
-    return createGenericSummary(
-        text
-    );
-}
-
-
-/* =========================================================
-   GENERIC SUMMARY
-========================================================= */
-
-function createGenericSummary(text) {
-
-    const cleaned =
-        cleanPdfText(text);
-
-    if (!cleaned) {
-        return [];
-    }
-
-    const points = [];
-
-    const sentences =
-        cleaned
-            .split(
-                /(?<=[.!?])\s+/
-            )
-            .map(
-                sentence =>
-                    sentence.trim()
-            )
-            .filter(
-                sentence =>
-                    sentence.length > 25
-            );
-
-    sentences.forEach(
-        sentence => {
-
-            if (
-                !points.includes(
-                    sentence
-                )
-            ) {
-
-                points.push(
-                    sentence
-                );
-            }
-        }
-    );
-
-
-    if (points.length === 0) {
-
-        const words =
-            cleaned.split(" ");
-
-        let currentPoint = "";
-
-        words.forEach(
-            word => {
-
-                currentPoint +=
-                    word + " ";
-
-                if (
-                    currentPoint.length >= 120
-                ) {
-
-                    points.push(
-                        currentPoint.trim()
-                    );
-
-                    currentPoint = "";
-                }
-            }
-        );
-
-        if (
-            currentPoint.trim()
-        ) {
-
-            points.push(
-                currentPoint.trim()
-            );
-        }
-    }
-
-    return points.slice(
-        0,
-        20
-    );
-}
-
-
-/* =========================================================
-   CREATE SUMMARY POINTS
-========================================================= */
-
-function createSummaryPoints(text) {
-
-    const cleanedText =
-        cleanPdfText(text);
-
-    if (!cleanedText) {
-        return [];
-    }
-
-    const lowerText =
-        cleanedText.toLowerCase();
-
-
-    if (
-        lowerText.includes("oops") ||
-        lowerText.includes("object oriented programming") ||
-        lowerText.includes("object-oriented programming")
-    ) {
-
-        return createOopSummary(
-            cleanedText
-        );
-    }
-
-
-    return createGenericSummary(
-        cleanedText
-    );
-}
-
-
-/* =========================================================
-   DISPLAY SUMMARY
-========================================================= */
-
-function displaySummaryPoints(
-    material,
-    points
-) {
-
-    aiSummaryContent.innerHTML = "";
-
-    const title =
-        document.createElement("h3");
-
-    title.textContent =
-        material.filename;
-
-    aiSummaryContent.appendChild(
-        title
-    );
-
-
-    if (points.length === 0) {
-
-        const message =
-            document.createElement("p");
-
-        message.textContent =
-            "No readable summary points were found.";
-
-        aiSummaryContent.appendChild(
-            message
-        );
-
-        return;
-    }
-
-
-    const heading =
-        document.createElement("h4");
-
-    heading.textContent =
-        "Key Points";
-
-    heading.style.marginTop =
-        "20px";
-
-    aiSummaryContent.appendChild(
-        heading
-    );
-
-
-    const list =
-        document.createElement("ol");
-
-    list.className =
-        "ai-summary-points";
-
-    list.style.paddingLeft =
-        "25px";
-
-    list.style.marginTop =
-        "15px";
-
-
-    points.forEach(
-        point => {
-
-            const listItem =
-                document.createElement("li");
-
-            listItem.textContent =
-                point;
-
-            listItem.style.marginBottom =
-                "15px";
-
-            listItem.style.lineHeight =
-                "1.7";
-
-            listItem.style.paddingLeft =
-                "5px";
-
-            list.appendChild(
-                listItem
-            );
-        }
-    );
-
-
-    aiSummaryContent.appendChild(
-        list
-    );
-}
-
-
-/* =========================================================
-   DOWNLOAD SUMMARY
-========================================================= */
-
-function downloadAISummary(
-    material,
-    points
-) {
-
-    if (
-        !points ||
-        points.length === 0
-    ) {
-
-        showMessage(
-            "Generate the AI summary before downloading.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    let fileContent =
-        "AI STUDY ASSISTANT\n\n";
-
-    fileContent +=
-        "AI SUMMARY\n\n";
-
-    fileContent +=
-        `Material: ${material.filename}\n\n`;
-
-
-    points.forEach(
-        (point, index) => {
-
-            fileContent +=
-                `${index + 1}. ${point}\n\n`;
-        }
-    );
-
-
-    const blob =
-        new Blob(
-            [fileContent],
-            {
-                type:
-                    "text/plain;charset=utf-8"
-            }
-        );
-
-
-    const downloadUrl =
-        URL.createObjectURL(
-            blob
-        );
-
-
-    const link =
-        document.createElement("a");
-
-    link.href =
-        downloadUrl;
-
-
-    const safeFilename =
-        material.filename
-            .replace(
-                /\.pdf$/i,
-                ""
-            )
-            .replace(
-                /[^a-z0-9_-]/gi,
-                "_"
-            );
-
-
-    link.download =
-        `${safeFilename}_AI_Summary.txt`;
-
-
-    document.body.appendChild(
-        link
-    );
-
-    link.click();
-
-    document.body.removeChild(
-        link
-    );
-
-
-    setTimeout(
-        function () {
-
-            URL.revokeObjectURL(
-                downloadUrl
-            );
-
-        },
-        1000
-    );
-}
-
-
-/* =========================================================
-   SHOW DOWNLOAD BUTTON
-========================================================= */
-
-function showDownloadButton() {
-
-    if (!downloadSummaryButton) {
-        return;
-    }
-
-    downloadSummaryButton.style.display =
-        "block";
-
-    downloadSummaryButton.style.visibility =
-        "visible";
-
-    downloadSummaryButton.disabled =
-        false;
-}
-
-
-/* =========================================================
-   HIDE DOWNLOAD BUTTON
-========================================================= */
-
-function hideDownloadButton() {
-
-    if (!downloadSummaryButton) {
-        return;
-    }
-
-    downloadSummaryButton.style.display =
-        "none";
-}
-
-
-/* =========================================================
-   DOWNLOAD BUTTON EVENT
-========================================================= */
-
-if (downloadSummaryButton) {
-
-    downloadSummaryButton.addEventListener(
-        "click",
-        function () {
-
-            if (
-                currentSummaryMaterial &&
-                currentSummaryPoints.length > 0
-            ) {
-
-                downloadAISummary(
-                    currentSummaryMaterial,
-                    currentSummaryPoints
-                );
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   SHOW LOCAL SUMMARY
+   PDF CONTENT SUMMARY
 ========================================================= */
 
 async function showLocalSummary(
@@ -1245,6 +893,7 @@ async function showLocalSummary(
 ) {
 
     if (!materialContent) {
+
         return;
     }
 
@@ -1253,25 +902,28 @@ async function showLocalSummary(
         "block";
 
 
+    if (downloadSummaryButton) {
+
+        downloadSummaryButton.style.display =
+            "none";
+    }
+
+
     summaryButton.textContent =
         "Reading PDF...";
+
 
     summaryButton.disabled =
         true;
 
 
-    hideDownloadButton();
-
-
     aiSummaryContent.innerHTML = `
-        <h3>
-            ${escapeHtml(
-                material.filename
-            )}
-        </h3>
+        <h3>${escapeHtml(
+            material.filename
+        )}</h3>
 
         <p>
-            Reading the PDF content...
+            Reading the actual PDF content...
         </p>
     `;
 
@@ -1283,7 +935,6 @@ async function showLocalSummary(
             !(
                 material.type ===
                 "application/pdf" ||
-
                 material.filename
                     .toLowerCase()
                     .endsWith(".pdf")
@@ -1296,9 +947,10 @@ async function showLocalSummary(
         }
 
 
-        /* =================================================
-           LOAD PDF.JS
-        ================================================= */
+        /*
+         * PDF.js is loaded only when
+         * the Summary button is clicked.
+         */
 
         const pdfjsLib =
             await import(
@@ -1310,20 +962,14 @@ async function showLocalSummary(
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
 
-        /* =================================================
-           READ PDF
-        ================================================= */
-
         const arrayBuffer =
             await material.file.arrayBuffer();
 
 
         const pdf =
-            await pdfjsLib
-                .getDocument({
-                    data: arrayBuffer
-                })
-                .promise;
+            await pdfjsLib.getDocument({
+                data: arrayBuffer
+            }).promise;
 
 
         let fullText = "";
@@ -1355,91 +1001,163 @@ async function showLocalSummary(
 
 
             fullText +=
-                pageText + " ";
+                pageText +
+                " ";
         }
 
 
         fullText =
             fullText
-                .replace(
-                    /\s+/g,
-                    " "
-                )
+                .replace(/\s+/g, " ")
                 .trim();
 
-
-        /* =================================================
-           CHECK TEXT
-        ================================================= */
 
         if (!fullText) {
 
             aiSummaryContent.innerHTML = `
-                <h3>
-                    ${escapeHtml(
-                        material.filename
-                    )}
-                </h3>
+                <h3>${escapeHtml(
+                    material.filename
+                )}</h3>
 
                 <p>
-                    This PDF does not contain readable text.
-                    It may be a scanned document.
+                    No readable text was found
+                    inside this PDF.
+                </p>
+
+                <p>
+                    This may be a scanned PDF.
+                    Scanned PDFs require OCR.
                 </p>
             `;
+
 
             summaryButton.disabled =
                 false;
 
+
             summaryButton.textContent =
                 "AI Summary";
+
+
+            summaryButton.onclick =
+                function () {
+
+                    showLocalSummary(
+                        material,
+                        summaryButton
+                    );
+                };
+
 
             return;
         }
 
 
-        /* =================================================
-           CREATE POINTS
-        ================================================= */
+        /*
+         * Extract sentences from the
+         * actual PDF content.
+         */
 
-        const points =
-            createSummaryPoints(
-                fullText
+        const sentences =
+            fullText.match(
+                /[^.!?]+[.!?]+/g
+            ) || [];
+
+
+        let summarySentences =
+            sentences
+                .map(
+                    sentence =>
+                        sentence.trim()
+                )
+                .filter(
+                    sentence =>
+                        sentence.length > 40
+                );
+
+
+        /*
+         * If the PDF has very little
+         * punctuation, use its content.
+         */
+
+        if (
+            summarySentences.length === 0
+        ) {
+
+            summarySentences = [
+                fullText.substring(
+                    0,
+                    3000
+                )
+            ];
+        }
+
+
+        /*
+         * Keep the displayed summary
+         * reasonably short.
+         */
+
+        summarySentences =
+            summarySentences.slice(
+                0,
+                8
             );
 
 
-        currentSummaryMaterial =
-            material;
-
-        currentSummaryPoints =
-            points;
-
-
-        /* =================================================
-           DISPLAY POINTS
-        ================================================= */
-
-        displaySummaryPoints(
-            material,
-            points
-        );
+        const summary =
+            summarySentences.join(
+                " "
+            );
 
 
-        /* =================================================
-           SHOW DOWNLOAD BUTTON
-        ================================================= */
+        aiSummaryContent.innerHTML = `
+            <h3>${escapeHtml(
+                material.filename
+            )}</h3>
 
-        showDownloadButton();
+            <p>
+                ${escapeHtml(
+                    summary
+                )}
+            </p>
+        `;
 
-
-        /* =================================================
-           SUMMARY BUTTON STATE
-        ================================================= */
 
         summaryButton.disabled =
             false;
 
+
         summaryButton.textContent =
             "Hide Summary";
+
+
+        summaryButton.onclick =
+            function () {
+
+                materialContent.style.display =
+                    "none";
+
+
+                summaryButton.textContent =
+                    "AI Summary";
+
+
+                summaryButton.disabled =
+                    false;
+
+
+                summaryButton.onclick =
+                    function () {
+
+                        showLocalSummary(
+                            material,
+                            summaryButton
+                        );
+                    };
+            };
+
 
     } catch (error) {
 
@@ -1450,20 +1168,16 @@ async function showLocalSummary(
 
 
         aiSummaryContent.innerHTML = `
-            <h3>
-                ${escapeHtml(
-                    material.filename
-                )}
-            </h3>
+            <h3>${escapeHtml(
+                material.filename
+            )}</h3>
 
             <p>
-                Unable to read this PDF.
+                Unable to read the PDF content.
             </p>
 
             <p>
-                ${escapeHtml(
-                    error.message
-                )}
+                Please try uploading the PDF again.
             </p>
         `;
 
@@ -1471,11 +1185,19 @@ async function showLocalSummary(
         summaryButton.disabled =
             false;
 
+
         summaryButton.textContent =
             "AI Summary";
 
 
-        hideDownloadButton();
+        summaryButton.onclick =
+            function () {
+
+                showLocalSummary(
+                    material,
+                    summaryButton
+                );
+            };
     }
 }
 
@@ -1484,34 +1206,21 @@ async function showLocalSummary(
    ESCAPE HTML
 ========================================================= */
 
-function escapeHtml(value) {
+function escapeHtml(
+    value
+) {
 
-    return String(value)
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
+    const div =
+        document.createElement(
+            "div"
         );
+
+
+    div.textContent =
+        value || "";
+
+
+    return div.innerHTML;
 }
 
 
@@ -1523,13 +1232,14 @@ async function deleteMaterial(
     materialId
 ) {
 
-    const confirmDelete =
-        confirm(
-            "Are you sure you want to delete this material?"
+    const confirmed =
+        window.confirm(
+            "Are you sure you want to delete this study material?"
         );
 
 
-    if (!confirmDelete) {
+    if (!confirmed) {
+
         return;
     }
 
@@ -1546,38 +1256,33 @@ async function deleteMaterial(
         );
 
 
-        await loadMaterials();
+        materialContent.style.display =
+            "none";
 
 
-        if (materialContent) {
-
-            materialContent.style.display =
-                "none";
-        }
-
-
-        hideDownloadButton();
-
-
-        currentSummaryMaterial =
-            null;
-
-        currentSummaryPoints =
-            [];
+        aiSummaryContent.innerHTML =
+            "";
 
 
         showMessage(
-            "Material deleted successfully."
+            "Study material deleted successfully.",
+            "success"
         );
+
+
+        await loadMaterials();
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Delete material error:",
+            error
+        );
 
 
         showMessage(
-            "Unable to delete material.",
+            "Unable to delete study material.",
             "error"
         );
     }
@@ -1585,7 +1290,7 @@ async function deleteMaterial(
 
 
 /* =========================================================
-   UPLOAD MATERIAL
+   UPLOAD / SAVE MATERIAL
 ========================================================= */
 
 uploadForm.addEventListener(
@@ -1606,6 +1311,7 @@ uploadForm.addEventListener(
                 "error"
             );
 
+
             return;
         }
 
@@ -1615,25 +1321,27 @@ uploadForm.addEventListener(
             const material = {
 
                 id:
-                    `${userId}_${Date.now()}`,
+                    `${userId}_${Date.now()}_${Math.random()
+                        .toString(36)
+                        .substring(2)}`,
 
-                userId:
+                user_id:
                     userId,
 
                 filename:
                     file.name,
 
-                type:
-                    file.type,
-
                 size:
                     file.size,
 
-                uploadedAt:
-                    new Date().toISOString(),
+                type:
+                    file.type,
 
                 file:
-                    file
+                    file,
+
+                saved_at:
+                    Date.now()
             };
 
 
@@ -1647,24 +1355,46 @@ uploadForm.addEventListener(
             );
 
 
-            uploadForm.reset();
+            materialFile.value =
+                "";
+
+
+            materialContent.style.display =
+                "none";
+
+
+            aiSummaryContent.innerHTML =
+                "";
+
+
+            if (
+                downloadSummaryButton
+            ) {
+
+                downloadSummaryButton.style.display =
+                    "none";
+            }
+
+
+            showMessage(
+                "Study material saved successfully.",
+                "success"
+            );
 
 
             await loadMaterials();
 
 
-            showMessage(
-                "Material saved successfully."
+        } catch (error) {
+
+            console.error(
+                "Upload error:",
+                error
             );
 
 
-        } catch (error) {
-
-            console.error(error);
-
-
             showMessage(
-                "Unable to save material.",
+                "Unable to save study material.",
                 "error"
             );
         }
@@ -1682,7 +1412,12 @@ if (materialContent) {
         "none";
 }
 
-hideDownloadButton();
+
+if (downloadSummaryButton) {
+
+    downloadSummaryButton.style.display =
+        "none";
+}
 
 
 /* =========================================================
@@ -1695,13 +1430,21 @@ async function startMaterials() {
 
         await openDatabase();
 
+
         await loadMaterials();
+
 
     } catch (error) {
 
         console.error(
-            "Materials startup error:",
+            "Materials database error:",
             error
+        );
+
+
+        showMessage(
+            "Unable to open material storage.",
+            "error"
         );
     }
 }
