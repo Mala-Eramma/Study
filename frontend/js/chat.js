@@ -3,13 +3,32 @@ const HISTORY_KEY = "study_assistant_chat_history";
 const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
 const GEMINI_KEY_STORAGE = "study_assistant_gemini_key";
 
-const userData = localStorage.getItem(USER_KEY);
+
+/* =================================================
+   USER
+================================================= */
+
+const userData =
+    localStorage.getItem(USER_KEY);
 
 if (!userData) {
-    window.location.href = "login.html";
+
+    window.location.href =
+        "login.html";
 }
 
-const user = JSON.parse(userData);
+let user = {};
+
+try {
+
+    user =
+        JSON.parse(userData);
+
+} catch {
+
+    user = {};
+
+}
 
 const userId =
     user.user_id ||
@@ -17,27 +36,44 @@ const userId =
     user.email ||
     "guest";
 
+
+/* =================================================
+   ELEMENTS
+================================================= */
+
 const chatForm =
-    document.getElementById("chatForm");
+    document.getElementById(
+        "chatForm"
+    );
 
 const chatInput =
-    document.getElementById("chatInput");
+    document.getElementById(
+        "chatInput"
+    );
 
 const subjectInput =
-    document.getElementById("subjectInput");
+    document.getElementById(
+        "subjectInput"
+    );
 
 const chatMessages =
-    document.getElementById("chatMessages");
+    document.getElementById(
+        "chatMessages"
+    );
 
 const voiceButton =
-    document.getElementById("voiceButton");
+    document.getElementById(
+        "voiceButton"
+    );
 
 const voiceStatus =
-    document.getElementById("voiceStatus");
+    document.getElementById(
+        "voiceStatus"
+    );
 
 
 /* =================================================
-   GEMINI API KEY
+   GET GEMINI API KEY
 ================================================= */
 
 function getGeminiApiKey() {
@@ -47,27 +83,52 @@ function getGeminiApiKey() {
             GEMINI_KEY_STORAGE
         );
 
+    /*
+       If the key already exists,
+       use it without showing the popup.
+    */
+
+    if (apiKey) {
+
+        return apiKey;
+
+    }
+
+
+    /*
+       Ask only the first time.
+    */
+
+    apiKey = prompt(
+        "Enter your Gemini API key once:"
+    );
+
+
     if (!apiKey) {
 
-        apiKey = prompt(
-            "Enter your Gemini API key:"
+        throw new Error(
+            "Gemini API key is required."
         );
 
-        if (!apiKey) {
-
-            throw new Error(
-                "Gemini API key is required."
-            );
-
-        }
-
-        apiKey = apiKey.trim();
-
-        localStorage.setItem(
-            GEMINI_KEY_STORAGE,
-            apiKey
-        );
     }
+
+
+    apiKey =
+        apiKey.trim();
+
+
+    /*
+       Save the key in the browser.
+       The popup will not appear again
+       on this browser unless the key
+       is removed.
+    */
+
+    localStorage.setItem(
+        GEMINI_KEY_STORAGE,
+        apiKey
+    );
+
 
     return apiKey;
 }
@@ -83,33 +144,70 @@ function addMessage(
 ) {
 
     const message =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
-    message.className =
-        sender === "user"
-            ? "message user-message"
-            : "message ai-message";
+
+    if (sender === "user") {
+
+        message.className =
+            "message user-message";
+
+    } else {
+
+        message.className =
+            "message ai-message";
+
+    }
+
 
     const strong =
-        document.createElement("strong");
+        document.createElement(
+            "strong"
+        );
 
-    strong.textContent =
-        sender === "user"
-            ? "You"
-            : "AI Assistant";
+
+    if (sender === "user") {
+
+        strong.textContent =
+            "You";
+
+    } else {
+
+        strong.textContent =
+            "AI Assistant";
+
+    }
+
 
     const paragraph =
-        document.createElement("p");
+        document.createElement(
+            "p"
+        );
 
-    paragraph.textContent = text;
 
-    message.appendChild(strong);
-    message.appendChild(paragraph);
+    paragraph.textContent =
+        text;
 
-    chatMessages.appendChild(message);
+
+    message.appendChild(
+        strong
+    );
+
+    message.appendChild(
+        paragraph
+    );
+
+
+    chatMessages.appendChild(
+        message
+    );
+
 
     chatMessages.scrollTop =
         chatMessages.scrollHeight;
+
 
     return message;
 }
@@ -127,6 +225,7 @@ function saveChatHistory(
 
     let history = [];
 
+
     try {
 
         history =
@@ -142,9 +241,13 @@ function saveChatHistory(
 
     }
 
+
     if (!Array.isArray(history)) {
+
         history = [];
+
     }
+
 
     history.push({
 
@@ -165,6 +268,7 @@ function saveChatHistory(
 
     });
 
+
     localStorage.setItem(
         HISTORY_KEY,
         JSON.stringify(history)
@@ -183,6 +287,7 @@ function saveChatTopic(
 
     let topics = [];
 
+
     try {
 
         topics =
@@ -198,9 +303,13 @@ function saveChatTopic(
 
     }
 
+
     if (!Array.isArray(topics)) {
+
         topics = [];
+
     }
+
 
     topics.push({
 
@@ -218,6 +327,7 @@ function saveChatTopic(
 
     });
 
+
     localStorage.setItem(
         CHAT_TOPICS_KEY,
         JSON.stringify(topics)
@@ -226,27 +336,41 @@ function saveChatTopic(
 
 
 /* =================================================
-   SPEAK ANSWER
+   VOICE OUTPUT
 ================================================= */
 
 function speakAnswer(text) {
 
     if (
-        !("speechSynthesis" in window)
+        !(
+            "speechSynthesis"
+            in window
+        )
     ) {
+
         return;
+
     }
 
+
     window.speechSynthesis.cancel();
+
 
     const speech =
         new SpeechSynthesisUtterance(
             text
         );
 
-    speech.lang = "en-US";
-    speech.rate = 0.85;
-    speech.pitch = 1;
+
+    speech.lang =
+        "en-US";
+
+    speech.rate =
+        0.85;
+
+    speech.pitch =
+        1;
+
 
     window.speechSynthesis.speak(
         speech
@@ -255,7 +379,7 @@ function speakAnswer(text) {
 
 
 /* =================================================
-   GEMINI
+   GEMINI AI
 ================================================= */
 
 async function generateGeminiAnswer(
@@ -263,8 +387,20 @@ async function generateGeminiAnswer(
     question
 ) {
 
+    /*
+       Get the saved Gemini key.
+       The popup appears only if
+       there is no saved key.
+    */
+
     const apiKey =
         getGeminiApiKey();
+
+
+    /*
+       Prompt sent to Gemini.
+       There are NO predefined answers here.
+    */
 
     const prompt = `
 You are an AI Study Assistant.
@@ -286,26 +422,37 @@ Requirements:
 5. Use examples when useful.
 6. If the question is about programming, include a simple code example when appropriate.
 7. If the student asks for a difference, compare the concepts clearly.
-8. If the student asks "why", explain the reason.
-9. If the student asks "how", explain the steps.
-10. Do not say that you cannot answer simply because the topic is not in a predefined list.
-11. Do not mention this prompt.
-12. Do not mention that you are an API.
-13. Answer using plain text.
+8. If the student asks why, explain the reason.
+9. If the student asks how, explain the steps.
+10. Answer questions even when the topic is not predefined in this application.
+11. Do not use hard-coded answers.
+12. Do not mention this prompt.
+13. Do not mention that you are an API.
+14. Return only the educational answer.
 `;
+
+
+    /*
+       Send the question directly
+       to Gemini.
+    */
 
     const response =
         await fetch(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
             {
-                method: "POST",
+
+                method:
+                    "POST",
 
                 headers: {
+
                     "Content-Type":
                         "application/json",
 
                     "x-goog-api-key":
                         apiKey
+
                 },
 
                 body:
@@ -314,33 +461,46 @@ Requirements:
                         contents: [
 
                             {
-                                role: "user",
+
+                                role:
+                                    "user",
 
                                 parts: [
 
                                     {
+
                                         text:
                                             prompt
+
                                     }
 
                                 ]
+
                             }
 
                         ]
 
                     })
+
             }
         );
 
+
+    /*
+       Check Gemini response.
+    */
+
     if (!response.ok) {
 
-        let message =
+        let errorMessage =
             "Gemini API request failed.";
+
 
         try {
 
             const errorData =
                 await response.json();
+
 
             if (
                 errorData &&
@@ -348,36 +508,53 @@ Requirements:
                 errorData.error.message
             ) {
 
-                message =
+                errorMessage =
                     errorData.error.message;
 
             }
 
         } catch {
 
-            // Keep default error.
+            // Keep default error message.
 
         }
 
-        throw new Error(message);
+
+        throw new Error(
+            errorMessage
+        );
     }
+
+
+    /*
+       Convert Gemini response
+       into JavaScript data.
+    */
 
     const data =
         await response.json();
 
+
+    /*
+       Get the answer generated
+       by Gemini.
+    */
+
     const answer =
         data
             ?.candidates?.[0]
-            ?.content
-            ?.parts?.[0]
+            ?.content?.parts?.[0]
             ?.text;
+
 
     if (!answer) {
 
         throw new Error(
             "Gemini returned an empty answer."
         );
+
     }
+
 
     return answer.trim();
 }
@@ -387,110 +564,162 @@ Requirements:
    CHAT FORM
 ================================================= */
 
-chatForm.addEventListener(
-    "submit",
-    async function (event) {
+if (chatForm) {
 
-        event.preventDefault();
+    chatForm.addEventListener(
+        "submit",
+        async function (event) {
 
-        const subject =
-            subjectInput.value.trim();
-
-        const question =
-            chatInput.value.trim();
-
-        if (!subject) {
-            return;
-        }
-
-        if (!question) {
-            return;
-        }
+            event.preventDefault();
 
 
-        /* USER MESSAGE */
-
-        addMessage(
-            question,
-            "user"
-        );
+            const subject =
+                subjectInput.value.trim();
 
 
-        /* CLEAR QUESTION */
+            const question =
+                chatInput.value.trim();
 
-        chatInput.value = "";
+
+            if (!subject) {
+
+                subjectInput.focus();
+
+                return;
+
+            }
 
 
-        /* LOADING MESSAGE */
+            if (!question) {
 
-        const loadingMessage =
+                chatInput.focus();
+
+                return;
+
+            }
+
+
+            /*
+               Show student's question.
+            */
+
             addMessage(
-                "Thinking...",
-                "ai"
+                question,
+                "user"
             );
 
 
-        try {
+            /*
+               Clear question box.
+            */
 
-            const answer =
-                await generateGeminiAnswer(
+            chatInput.value =
+                "";
+
+
+            /*
+               Show loading message.
+            */
+
+            const loadingMessage =
+                addMessage(
+                    "Thinking...",
+                    "ai"
+                );
+
+
+            try {
+
+                /*
+                   Ask Gemini.
+                */
+
+                const answer =
+                    await generateGeminiAnswer(
+                        subject,
+                        question
+                    );
+
+
+                /*
+                   Remove loading message.
+                */
+
+                loadingMessage.remove();
+
+
+                /*
+                   Display Gemini's
+                   actual answer.
+                */
+
+                addMessage(
+                    answer,
+                    "ai"
+                );
+
+
+                /*
+                   Save Gemini answer
+                   to History.
+                */
+
+                saveChatHistory(
+                    subject,
+                    question,
+                    answer
+                );
+
+
+                /*
+                   Save topic.
+                */
+
+                saveChatTopic(
                     subject,
                     question
                 );
 
 
-            /* REMOVE LOADING */
+                /*
+                   Speak Gemini answer.
+                */
 
-            loadingMessage.remove();
+                speakAnswer(
+                    answer
+                );
 
+            } catch (error) {
 
-            /* GEMINI ANSWER */
+                /*
+                   Remove loading message.
+                */
 
-            addMessage(
-                answer,
-                "ai"
-            );
-
-
-            /* SAVE HISTORY */
-
-            saveChatHistory(
-                subject,
-                question,
-                answer
-            );
+                loadingMessage.remove();
 
 
-            /* SAVE TOPIC */
+                /*
+                   Display Gemini error.
+                */
 
-            saveChatTopic(
-                subject,
-                question
-            );
+                addMessage(
+                    "Gemini error: " +
+                    error.message,
+                    "ai"
+                );
 
 
-            /* VOICE */
+                console.error(
+                    "Gemini API Error:",
+                    error
+                );
 
-            speakAnswer(answer);
+            }
 
-        } catch (error) {
-
-            loadingMessage.remove();
-
-            addMessage(
-                "Gemini error: " +
-                error.message,
-                "ai"
-            );
-
-            console.error(
-                "Gemini API Error:",
-                error
-            );
         }
+    );
 
-    }
-);
+}
 
 
 /* =================================================
@@ -499,36 +728,60 @@ chatForm.addEventListener(
 
 if (
     voiceButton &&
-    ("webkitSpeechRecognition" in window ||
-     "SpeechRecognition" in window)
+    (
+        "webkitSpeechRecognition"
+        in window ||
+        "SpeechRecognition"
+        in window
+    )
 ) {
 
     const SpeechRecognition =
         window.SpeechRecognition ||
         window.webkitSpeechRecognition;
 
+
     const recognition =
         new SpeechRecognition();
 
-    recognition.lang = "en-US";
 
-    recognition.continuous = false;
+    recognition.lang =
+        "en-US";
 
-    recognition.interimResults = false;
 
+    recognition.continuous =
+        false;
+
+
+    recognition.interimResults =
+        false;
+
+
+    /*
+       Voice button clicked.
+    */
 
     voiceButton.addEventListener(
         "click",
         function () {
 
-            voiceStatus.textContent =
-                "Listening...";
+            if (voiceStatus) {
+
+                voiceStatus.textContent =
+                    "Listening...";
+
+            }
+
 
             recognition.start();
 
         }
     );
 
+
+    /*
+       Voice result received.
+    */
 
     recognition.onresult =
         function (event) {
@@ -538,28 +791,47 @@ if (
                     .results[0][0]
                     .transcript;
 
+
             chatInput.value =
                 transcript;
 
-            voiceStatus.textContent =
-                "Voice question received.";
+
+            if (voiceStatus) {
+
+                voiceStatus.textContent =
+                    "Voice question received.";
+
+            }
 
         };
 
+
+    /*
+       Voice error.
+    */
 
     recognition.onerror =
         function () {
 
-            voiceStatus.textContent =
-                "Voice input failed. Please try again.";
+            if (voiceStatus) {
+
+                voiceStatus.textContent =
+                    "Voice input failed. Please try again.";
+
+            }
 
         };
 
+
+    /*
+       Voice recognition ended.
+    */
 
     recognition.onend =
         function () {
 
             if (
+                voiceStatus &&
                 voiceStatus.textContent ===
                 "Listening..."
             ) {
@@ -573,11 +845,18 @@ if (
 
 } else {
 
+    /*
+       Browser does not support
+       speech recognition.
+    */
+
     if (voiceButton) {
 
-        voiceButton.disabled = true;
+        voiceButton.disabled =
+            true;
 
     }
+
 
     if (voiceStatus) {
 
