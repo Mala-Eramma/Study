@@ -52,7 +52,7 @@ function addMessage(text, sender) {
 
 /* ================= SAVE CHAT HISTORY ================= */
 
-function saveChatHistory(question, answer) {
+function saveChatHistory(subject, question, answer) {
 
     let history = [];
 
@@ -76,6 +76,8 @@ function saveChatHistory(question, answer) {
 
         user_id: userId,
 
+        subject: subject,
+
         question: question,
 
         answer: answer,
@@ -89,7 +91,6 @@ function saveChatHistory(question, answer) {
         JSON.stringify(history)
     );
 }
-
 
 /* ================= SAVE TOPICS ================= */
 
@@ -1282,6 +1283,7 @@ chatForm.addEventListener(
         /* SAVE FOR HISTORY */
 
         saveChatHistory(
+            subject,
             question,
             answer
         );
