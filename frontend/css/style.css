@@ -386,3 +386,62 @@ body {
         max-width: 220px;
     }
 }
+
+/* =========================================================
+   MATERIALS - AI SUMMARY
+========================================================= */
+
+#aiSummaryContent ul {
+    margin-top: 15px;
+    padding-left: 30px;
+}
+
+#aiSummaryContent li {
+    margin-bottom: 12px;
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   DOWNLOAD AI SUMMARY BUTTON
+========================================================= */
+
+#downloadSummaryButton {
+    display: none;
+    margin-top: 20px;
+    padding: 12px 22px;
+
+    background-color: darkblue;
+    color: white;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.3s ease,
+        transform 0.2s ease;
+}
+
+#downloadSummaryButton:hover {
+    background-color: #00008b;
+    transform: translateY(-2px);
+}
+
+#downloadSummaryButton:active {
+    transform: translateY(0);
+}
+.ai-summary-points {
+    margin-top: 15px;
+    padding-left: 30px;
+}
+
+.ai-summary-points li {
+    display: list-item;
+    margin-bottom: 15px;
+    line-height: 1.7;
+}
