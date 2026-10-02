@@ -1,81 +1,218 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String, Text, Date, Time, Float, DateTime
+from datetime import datetime
 
-from ..database import get_db
-from ..models import User
-from ..schemas import UserRegister, UserLogin
+from .database import Base
 
 
-router = APIRouter()
+# =========================================
+# USER
+# =========================================
 
+class User(Base):
 
-@router.post("/register")
-def register(
-    user_data: UserRegister,
-    db: Session = Depends(get_db)
-):
+    __tablename__ = "users"
 
-    existing_user = (
-        db.query(User)
-        .filter(User.email == user_data.email)
-        .first()
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
     )
 
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered."
-        )
-
-
-    new_user = User(
-        name=user_data.name,
-        email=user_data.email,
-        password=user_data.password
+    name = Column(
+        String(100),
+        nullable=False
     )
 
+    email = Column(
+        String(150),
+        unique=True,
+        nullable=False,
+        index=True
+    )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-
-    return {
-        "message": "Registration successful.",
-        "user_id": new_user.id
-    }
-
-
-@router.post("/login")
-def login(
-    user_data: UserLogin,
-    db: Session = Depends(get_db)
-):
-
-    user = (
-        db.query(User)
-        .filter(User.email == user_data.email)
-        .first()
+    password = Column(
+        String(255),
+        nullable=False
     )
 
 
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password."
-        )
+# =========================================
+# STUDY MATERIAL
+# =========================================
+
+class StudyMaterial(Base):
+
+    __tablename__ = "study_materials"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    filename = Column(
+        String(255),
+        nullable=False
+    )
+
+    file_path = Column(
+        String(500),
+        nullable=False
+    )
 
 
-    if user.password != user_data.password:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password."
-        )
+# =========================================
+# STUDY TASK
+# =========================================
+
+class StudyTask(Base):
+
+    __tablename__ = "study_tasks"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    subject = Column(
+        String(100),
+        nullable=False
+    )
+
+    task = Column(
+        Text,
+        nullable=False
+    )
+
+    study_date = Column(
+        Date,
+        nullable=False
+    )
+
+    study_time = Column(
+        Time,
+        nullable=False
+    )
 
 
-    return {
-        "message": "Login successful.",
-        "user_id": user.id,
-        "name": user.name,
-        "email": user.email
-    }
+# =========================================
+# QUIZ RESULT
+# =========================================
+
+class QuizResult(Base):
+
+    __tablename__ = "quiz_results"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    subject = Column(
+        String(100),
+        nullable=False
+    )
+
+    score = Column(
+        Float,
+        nullable=False
+    )
+
+    total_questions = Column(
+        Integer,
+        nullable=False
+    )
+
+
+# =========================================
+# LEARNING ACTIVITY
+# =========================================
+
+class LearningActivity(Base):
+
+    __tablename__ = "learning_activities"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    subject = Column(
+        String(100),
+        nullable=False
+    )
+
+    topic = Column(
+        String(255),
+        nullable=False
+    )
+
+    activity = Column(
+        String(255),
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+
+# =========================================
+# CHAT HISTORY
+# =========================================
+
+class ChatHistory(Base):
+
+    __tablename__ = "chat_history"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    question = Column(
+        Text,
+        nullable=False
+    )
+
+    answer = Column(
+        Text,
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )

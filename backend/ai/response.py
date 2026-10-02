@@ -1,12 +1,13 @@
 import os
 
-from google import genai
 from dotenv import load_dotenv
+from google import genai
 
 from .prompts import SYSTEM_PROMPT
 
 
 load_dotenv()
+
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -21,21 +22,21 @@ def generate_response(question: str) -> str:
     if not API_KEY:
         return "Gemini API key is not configured."
 
-    client = genai.Client(
-        api_key=API_KEY
-    )
+    try:
 
-    prompt = f"""
+        client = genai.Client(
+            api_key=API_KEY
+        )
+
+        prompt = f"""
 {SYSTEM_PROMPT}
 
 Student question:
 {question}
 """
 
-    try:
-
         response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
+            model="gemini-2.5-flash",
             contents=prompt
         )
 

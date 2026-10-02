@@ -21,6 +21,9 @@ def chat(
         request.question
     )
 
+    print("CHAT QUESTION:", request.question)
+    print("CHAT ANSWER:", answer)
+
     history = ChatHistory(
         user_id=user_id,
         question=request.question,
