@@ -1,3 +1,4 @@
+
 import os
 
 from dotenv import load_dotenv
@@ -9,24 +10,22 @@ from .prompts import SYSTEM_PROMPT
 load_dotenv()
 
 
-API_KEY = os.getenv("GEMINI_API_KEY")
-
-
 def generate_response(question: str) -> str:
-
     question = question.strip()
 
     if not question:
         return "Please enter a question."
 
-    if not API_KEY:
-        return "Gemini API key is not configured."
+    # Read the API key when a request arrives.
+    load_dotenv(override=False)
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        print("ERROR: GEMINI_API_KEY is missing from backend environment.")
+        return "Gemini API key is not configured on the backend."
 
     try:
-
-        client = genai.Client(
-            api_key=API_KEY
-        )
+        client = genai.Client(api_key=api_key)
 
         prompt = f"""
 {SYSTEM_PROMPT}
@@ -41,14 +40,11 @@ Student question:
         )
 
         if not response.text:
+            print("ERROR: Gemini returned an empty response.")
             return "Gemini returned an empty response."
 
         return response.text.strip()
 
     except Exception as error:
-
-        print(
-            f"Gemini response error: {error}"
-        )
-
+        print(f"Gemini response error: {error}")
         return "Unable to generate an AI response right now."
