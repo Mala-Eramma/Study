@@ -1,10 +1,8 @@
-
 const PLANNER_KEY = "study_assistant_planner";
 const USER_KEY = "user";
 
 const plannerForm = document.getElementById("plannerForm");
 const plannerList = document.getElementById("taskList");
-
 
 /* =========================================
    GET LOGGED-IN USER
@@ -128,6 +126,7 @@ if (!userData) {
 
             if (Notification.permission === "granted") {
                 reminderButton.textContent = "Reminders Enabled";
+
                 updateReminderStatus(
                     "Study reminders are enabled. Keep this page open.",
                     "#18794e"
@@ -308,6 +307,10 @@ if (!userData) {
                 return String(task.id) !== String(taskId);
             });
 
+            if (updatedTasks.length === tasks.length) {
+                return false;
+            }
+
             if (savePlannerTasks(updatedTasks)) {
                 const sentReminders = getSentReminders().filter(
                     function (id) {
@@ -316,8 +319,11 @@ if (!userData) {
                 );
 
                 saveSentReminders(sentReminders);
-                loadTasks();
+
+                return true;
             }
+
+            return false;
         }
 
         /* =========================================
@@ -344,13 +350,25 @@ if (!userData) {
             deleteButton.type = "button";
             deleteButton.textContent = "Delete";
 
+            const deleteMessage = document.createElement("p");
+            deleteMessage.textContent = "Study task deleted successfully.";
+            deleteMessage.style.display = "none";
+            deleteMessage.style.marginTop = "8px";
+            deleteMessage.style.color = "#18794e";
+            deleteMessage.style.fontSize = "14px";
+            deleteMessage.setAttribute("role", "status");
+
             deleteButton.addEventListener("click", function () {
-                if (
-                    window.confirm(
-                        "Are you sure you want to delete this study task?"
-                    )
-                ) {
-                    deleteTask(task.id);
+                if (deleteButton.disabled) {
+                    return;
+                }
+
+                const deleted = deleteTask(task.id);
+
+                if (deleted) {
+                    deleteButton.disabled = true;
+                    deleteButton.style.display = "none";
+                    deleteMessage.style.display = "block";
                 }
             });
 
@@ -359,6 +377,7 @@ if (!userData) {
             item.appendChild(date);
             item.appendChild(time);
             item.appendChild(deleteButton);
+            item.appendChild(deleteMessage);
 
             return item;
         }
