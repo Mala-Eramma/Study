@@ -1,214 +1,88 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Progress - AI Study Assistant</title>
 
-    <link
-        rel="stylesheet"
-        href="css/style.css"
-    >
-
-    <link
-        rel="stylesheet"
-        href="css/dashboard.css"
-    >
-
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 
-
 <body>
-
-
-    <!-- =========================================
-         HEADER
-    ========================================== -->
-
     <header class="dashboard-header">
-
         <div class="logo">
-
-            <img
-                src="images/logo.png"
-                alt="AI Study Assistant Logo"
-            >
-
-            <span>
-                AI Study Assistant
-            </span>
-
+            <img src="images/logo.png" alt="AI Study Assistant Logo">
+            <span>AI Study Assistant</span>
         </div>
 
-
-        <a
-            href="dashboard.html"
-            class="logout-button"
-        >
-            Dashboard
-        </a>
-
+        <a href="dashboard.html" class="logout-button">Dashboard</a>
     </header>
 
-
-
-    <!-- =========================================
-         MAIN PROGRESS PAGE
-    ========================================== -->
-
     <main class="progress-page">
-
-
         <section class="progress-container">
 
-
-            <!-- =====================================
-                 PAGE HEADER
-            ====================================== -->
-
             <div class="progress-header">
-
-                <h1>
-                    My Progress
-                </h1>
-
-                <p>
-                    Track your learning progress and study performance.
-                </p>
-
+                <h1>My Progress</h1>
+                <p>Track your learning activity, quiz performance, and study materials.</p>
             </div>
 
-
-
-            <!-- =====================================
-                 PROGRESS SUMMARY
-            ====================================== -->
-
-            <div class="progress-summary">
-
-
+            <section class="progress-summary" aria-label="Learning statistics">
                 <div class="progress-card">
-
-                    <h2>
-                        Study Tasks
-                    </h2>
-
-                    <p id="taskCount">
-                        0
-                    </p>
-
+                    <h2>Study Tasks</h2>
+                    <p id="taskCount">0</p>
+                    <span>Tasks recorded</span>
                 </div>
 
-
-
                 <div class="progress-card">
-
-                    <h2>
-                        Quiz Score
-                    </h2>
-
-                    <p id="quizScore">
-                        0%
-                    </p>
-
+                    <h2>Quiz Score</h2>
+                    <p id="quizScore">0%</p>
+                    <span>Average quiz percentage</span>
                 </div>
 
-
-
                 <div class="progress-card">
-
-                    <h2>
-                        Materials
-                    </h2>
-
-                    <p id="materialCount">
-                        0
-                    </p>
-
+                    <h2>Materials</h2>
+                    <p id="materialCount">0</p>
+                    <span>Saved study materials</span>
                 </div>
+            </section>
 
-
-            </div>
-
-
-
-            <!-- =====================================
-                 LEARNING PROGRESS
-            ====================================== -->
-
-            <div class="progress-section">
-
-                <h2>
-                    Learning Progress
-                </h2>
-
+            <section class="progress-section">
+                <h2>Learning Progress</h2>
 
                 <div class="progress-bar-container">
-
                     <div
                         id="progressBar"
                         class="progress-bar"
-                    >
-                        0%
-                    </div>
-
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                    >0%</div>
                 </div>
-
 
                 <p id="progressMessage">
                     Start studying to track your progress.
                 </p>
+            </section>
 
-            </div>
-
-
-
-            <!-- =====================================
-                 STUDY SUMMARY
-            ====================================== -->
-
-            <div class="progress-section">
-
-                <h2>
-                    Study Summary
-                </h2>
-
-
-                <div
-                    id="studySummary"
-                    class="summary-box"
-                >
-
-                    <p>
-                        Loading your learning activity...
-                    </p>
-
+            <section class="progress-section study-summary-section">
+                <div class="study-summary-title">
+                    <div>
+                        <h2>Study Summary</h2>
+                        <p>Review the subjects and topics you have explored.</p>
+                    </div>
                 </div>
 
-            </div>
-
+                <div id="studySummary" class="summary-box" aria-live="polite">
+                    <p>Loading your learning activity...</p>
+                </div>
+            </section>
 
         </section>
-
-
     </main>
 
-
-
-    <!-- =========================================
-         PROGRESS JAVASCRIPT
-    ========================================== -->
-
-    <script src="js/progress.js?v=4"></script>
-
-
+    <script src="js/progress.js?v=5"></script>
 </body>
-
 </html>

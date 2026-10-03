@@ -1,3 +1,4 @@
+
 const USER_KEY = "user";
 const PLANNER_KEY = "study_assistant_planner";
 const MATERIALS_KEY = "study_assistant_materials";
@@ -11,7 +12,15 @@ if (!userData) {
     window.location.href = "login.html";
 }
 
-const user = JSON.parse(userData);
+let user = {};
+
+try {
+    user = JSON.parse(userData || "{}") || {};
+} catch (error) {
+    console.error("Unable to read logged-in user:", error);
+    window.location.href = "login.html";
+}
+
 const userId = user.user_id || user.id || user.email;
 
 const taskCount = document.getElementById("taskCount");
@@ -22,30 +31,34 @@ const progressMessage = document.getElementById("progressMessage");
 const studySummary = document.getElementById("studySummary");
 
 
-function getUserData(key) {
-    let data = [];
+/* ---------------- USER DATA ---------------- */
 
+function getUserData(key) {
     try {
-        data = JSON.parse(localStorage.getItem(key) || "[]");
+        const data = JSON.parse(localStorage.getItem(key) || "[]");
+
+        if (!Array.isArray(data)) {
+            return [];
+        }
+
+        return data.filter(item => {
+            if (!item || typeof item !== "object") return false;
+
+            const itemUserId = item.user_id ?? item.userId;
+
+            return itemUserId == null ||
+                String(itemUserId) === String(userId);
+        });
     } catch (error) {
         console.error(`Unable to read ${key}:`, error);
-        data = [];
-    }
-
-    if (!Array.isArray(data)) {
         return [];
     }
-
-    return data.filter(item =>
-        String(item.user_id) === String(userId)
-    );
 }
 
 
 /* ---------------- TASKS ---------------- */
 
 function getTaskCount() {
-
     const tasks = getUserData(PLANNER_KEY);
 
     if (taskCount) {
@@ -58,46 +71,201 @@ function getTaskCount() {
 
 /* ---------------- MATERIALS ---------------- */
 
-function getMaterialCount() {
+// Read materials from the existing IndexedDB database.
+// Keep localStorage as a fallback for older saved records.
 
-    const materials = getUserData(MATERIALS_KEY);
+async function getMaterialCount() {
+    const DB_NAME = "AIStudyAssistantMaterialsDB";
+    const STORE_NAME = "materials";
 
-    if (materialCount) {
-        materialCount.textContent = materials.length;
+    function readLocalMaterials() {
+        return getUserData(MATERIALS_KEY).length;
     }
 
-    return materials.length;
+    if (!("indexedDB" in window)) {
+        const count = readLocalMaterials();
+
+        if (materialCount) {
+            materialCount.textContent = count;
+        }
+
+        return count;
+    }
+
+    let database;
+
+    try {
+        database = await new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (!database.objectStoreNames.contains(STORE_NAME)) {
+            database.close();
+
+            const count = readLocalMaterials();
+
+            if (materialCount) {
+                materialCount.textContent = count;
+            }
+
+            return count;
+        }
+
+        const records = await new Promise((resolve, reject) => {
+            const transaction = database.transaction(
+                STORE_NAME,
+                "readonly"
+            );
+
+            const request = transaction
+                .objectStore(STORE_NAME)
+                .getAll();
+
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+
+            transaction.onerror = () => reject(transaction.error);
+        });
+
+        const materials = records.filter(item => {
+            if (!item || typeof item !== "object") return false;
+
+            const itemUserId = item.user_id ?? item.userId;
+
+            return itemUserId == null ||
+                String(itemUserId) === String(userId);
+        });
+
+        const count = materials.length;
+
+        if (materialCount) {
+            materialCount.textContent = count;
+        }
+
+        database.close();
+
+        return count;
+
+    } catch (error) {
+        console.error("Unable to load saved materials:", error);
+
+        if (database) {
+            database.close();
+        }
+
+        const count = readLocalMaterials();
+
+        if (materialCount) {
+            materialCount.textContent = count;
+        }
+
+        return count;
+    }
 }
 
 
 /* ---------------- CHAT ---------------- */
 
 function getChatCount() {
-
     return getUserData(CHAT_HISTORY_KEY).length;
 }
 
 
 /* ---------------- QUIZ ---------------- */
 
-function getQuizData() {
+// Read the existing quiz progress key first.
+// If it is empty, look for other existing quiz-related localStorage keys.
 
-    return getUserData(QUIZ_PROGRESS_KEY);
+function getQuizData() {
+    const primaryData = getUserData(QUIZ_PROGRESS_KEY);
+
+    if (primaryData.length > 0) {
+        return primaryData;
+    }
+
+    const quizRecords = [];
+
+    try {
+        for (let index = 0; index < localStorage.length; index++) {
+            const key = localStorage.key(index);
+
+            if (!key || !key.toLowerCase().includes("quiz")) {
+                continue;
+            }
+
+            if (key === USER_KEY) {
+                continue;
+            }
+
+            let parsed;
+
+            try {
+                parsed = JSON.parse(localStorage.getItem(key) || "null");
+            } catch {
+                continue;
+            }
+
+            let records = [];
+
+            if (Array.isArray(parsed)) {
+                records = parsed;
+            } else if (parsed && typeof parsed === "object") {
+                if (
+                    parsed.user_id != null ||
+                    parsed.userId != null ||
+                    parsed.score != null ||
+                    parsed.percentage != null ||
+                    parsed.total != null
+                ) {
+                    records = [parsed];
+                } else if (Array.isArray(parsed.results)) {
+                    records = parsed.results;
+                } else if (Array.isArray(parsed.history)) {
+                    records = parsed.history;
+                }
+            }
+
+            records.forEach(item => {
+                if (!item || typeof item !== "object") return;
+
+                const itemUserId = item.user_id ?? item.userId;
+
+                if (
+                    itemUserId != null &&
+                    String(itemUserId) !== String(userId)
+                ) {
+                    return;
+                }
+
+                const hasScore =
+                    item.percentage != null ||
+                    item.score != null;
+
+                if (hasScore) {
+                    quizRecords.push(item);
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Unable to read quiz records:", error);
+    }
+
+    return quizRecords;
 }
 
 
 function getQuizCount() {
-
     return getQuizData().length;
 }
 
 
 function getQuizScore() {
-
     const quizzes = getQuizData();
 
     if (quizzes.length === 0) {
-
         if (quizScore) {
             quizScore.textContent = "0%";
         }
@@ -106,28 +274,38 @@ function getQuizScore() {
     }
 
     let totalPercentage = 0;
+    let validQuizCount = 0;
 
     quizzes.forEach(quiz => {
-
         let percentage = Number(quiz.percentage);
 
-        if (!Number.isFinite(percentage)) {
-
+        if (
+            quiz.percentage == null ||
+            !Number.isFinite(percentage)
+        ) {
             const score = Number(quiz.score);
             const total = Number(quiz.total);
 
-            if (total > 0) {
+            if (
+                Number.isFinite(score) &&
+                Number.isFinite(total) &&
+                total > 0
+            ) {
                 percentage = (score / total) * 100;
             } else {
-                percentage = 0;
+                return;
             }
         }
 
-        totalPercentage += percentage;
+        if (Number.isFinite(percentage)) {
+            totalPercentage += percentage;
+            validQuizCount++;
+        }
     });
 
-    const averageScore =
-        Math.round(totalPercentage / quizzes.length);
+    const averageScore = validQuizCount > 0
+        ? Math.round(totalPercentage / validQuizCount)
+        : 0;
 
     if (quizScore) {
         quizScore.textContent = `${averageScore}%`;
@@ -140,8 +318,7 @@ function getQuizScore() {
 /* ---------------- SUBJECT DETECTION ---------------- */
 
 function detectSubject(topic) {
-
-    const q = topic.toLowerCase();
+    const q = String(topic || "").toLowerCase();
 
     if (
         q.includes("python") ||
@@ -184,10 +361,9 @@ function detectSubject(topic) {
 
     if (
         q.includes("javascript") ||
-        q.includes("javascript") ||
         q.includes("array") ||
-        q.includes("let") ||
-        q.includes("const") ||
+        q.includes("let ") ||
+        q.includes("const ") ||
         q.includes("dom")
     ) {
         return "JavaScript";
@@ -223,8 +399,7 @@ function detectSubject(topic) {
 /* ---------------- CLEAN TOPIC NAME ---------------- */
 
 function getTopicName(topic) {
-
-    let name = topic.trim();
+    let name = String(topic || "").trim();
 
     name = name.replace(
         /^(what is|what are|explain|define|tell me about|meaning of|why is|why do we use|how does|how do|how to)\s+/i,
@@ -232,7 +407,7 @@ function getTopicName(topic) {
     );
 
     if (!name) {
-        name = topic.trim();
+        return "";
     }
 
     return name.charAt(0).toUpperCase() + name.slice(1);
@@ -242,20 +417,17 @@ function getTopicName(topic) {
 /* ---------------- LEARNED SUBJECTS ---------------- */
 
 function getLearnedSubjects() {
-
     const topics = getUserData(CHAT_TOPICS_KEY);
     const history = getUserData(CHAT_HISTORY_KEY);
 
     const allTopics = [];
 
-    // New chat topics
     topics.forEach(item => {
         if (item.topic) {
             allTopics.push(item.topic);
         }
     });
 
-    // Older chat history
     history.forEach(item => {
         if (item.question) {
             allTopics.push(item.question);
@@ -265,26 +437,21 @@ function getLearnedSubjects() {
     const subjects = {};
 
     allTopics.forEach(topic => {
-
         const subject = detectSubject(topic);
         const topicName = getTopicName(topic);
 
-        if (!topicName) {
-            return;
-        }
+        if (!topicName) return;
 
         if (!subjects[subject]) {
             subjects[subject] = [];
         }
 
-        const alreadyExists =
-            subjects[subject].some(
-                existingTopic =>
-                    existingTopic.toLowerCase() ===
-                    topicName.toLowerCase()
-            );
+        const exists = subjects[subject].some(
+            existingTopic =>
+                existingTopic.toLowerCase() === topicName.toLowerCase()
+        );
 
-        if (!alreadyExists) {
+        if (!exists) {
             subjects[subject].push(topicName);
         }
     });
@@ -292,140 +459,113 @@ function getLearnedSubjects() {
     return subjects;
 }
 
+
 /* ---------------- STUDY SUMMARY ---------------- */
 
 function updateStudySummary() {
-
-    if (!studySummary) {
-        return;
-    }
+    if (!studySummary) return;
 
     studySummary.innerHTML = "";
 
     const subjects = getLearnedSubjects();
+    const subjectNames = Object.keys(subjects).sort();
 
-    const subjectNames = Object.keys(subjects);
+    const totalTopics = subjectNames.reduce(
+        (total, subject) => total + subjects[subject].length,
+        0
+    );
+
+    const header = document.createElement("div");
+    header.className = "study-summary-header";
+    header.innerHTML = `
+        <div>
+            <p>My Learning Summary</p>
+            <span>Subjects and topics explored through AI Chat</span>
+        </div>
+        <strong>${totalTopics} topics</strong>
+    `;
+
+    studySummary.appendChild(header);
 
     if (subjectNames.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "summary-empty";
+        empty.innerHTML = `
+            <p>No learning activity recorded yet.</p>
+            <span>Start learning through AI Chat to see your subjects and topics here.</span>
+        `;
 
-        const emptyMessage =
-            document.createElement("p");
-
-        emptyMessage.textContent =
-            "Your learned topics will appear here after you study using AI Chat.";
-
-        studySummary.appendChild(emptyMessage);
-
+        studySummary.appendChild(empty);
         return;
     }
 
+    const summaryGrid = document.createElement("div");
+    summaryGrid.className = "study-summary-grid";
+
     subjectNames.forEach(subject => {
+        const topics = subjects[subject];
 
-        const subjectContainer =
-            document.createElement("div");
+        const card = document.createElement("section");
+        card.className = "study-summary-card";
 
-        subjectContainer.className =
-            "subject-summary-container";
+        const heading = document.createElement("div");
+        heading.className = "study-summary-card-header";
 
+        const title = document.createElement("h3");
+        title.textContent = subject;
 
-        const subjectTitle =
-            document.createElement("h3");
+        const count = document.createElement("span");
+        count.className = "study-summary-count";
+        count.textContent = `${topics.length} topics`;
 
-        subjectTitle.textContent = subject;
+        heading.append(title, count);
 
+        const topicList = document.createElement("ul");
+        topicList.className = "study-summary-topic-list";
 
-        const learnedTitle =
-            document.createElement("p");
-
-        learnedTitle.textContent =
-            "What you learned";
-
-
-        const topicList =
-            document.createElement("ul");
-
-
-        subjects[subject].forEach(topic => {
-
-            const topicItem =
-                document.createElement("li");
-
-            topicItem.textContent = topic;
-
-            topicList.appendChild(topicItem);
-
+        topics.forEach(topic => {
+            const item = document.createElement("li");
+            item.textContent = topic;
+            topicList.appendChild(item);
         });
 
-
-        subjectContainer.appendChild(subjectTitle);
-        subjectContainer.appendChild(learnedTitle);
-        subjectContainer.appendChild(topicList);
-
-        studySummary.appendChild(subjectContainer);
-
+        card.append(heading, topicList);
+        summaryGrid.appendChild(card);
     });
+
+    studySummary.appendChild(summaryGrid);
 }
 
 
 /* ---------------- PROGRESS ---------------- */
 
-function updateLearningProgress(
-    tasks,
-    materials,
-    chatCount,
-    quizCount
-) {
-
+function updateLearningProgress(tasks, materials, chatCount, quizCount) {
     let progress = 0;
 
-    if (tasks > 0) {
-        progress += 25;
-    }
-
-    if (materials > 0) {
-        progress += 25;
-    }
-
-    if (chatCount > 0) {
-        progress += 25;
-    }
-
-    if (quizCount > 0) {
-        progress += 25;
-    }
+    if (tasks > 0) progress += 25;
+    if (materials > 0) progress += 25;
+    if (chatCount > 0) progress += 25;
+    if (quizCount > 0) progress += 25;
 
     progress = Math.min(progress, 100);
 
-
     if (progressBar) {
-
-        progressBar.style.width =
-            `${progress}%`;
-
-        progressBar.textContent =
-            `${progress}%`;
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+        progressBar.setAttribute("aria-valuenow", String(progress));
     }
 
-
     if (progressMessage) {
-
         if (progress === 0) {
-
             progressMessage.textContent =
                 "Start studying to track your progress.";
-
         } else if (progress < 50) {
-
             progressMessage.textContent =
                 "Good start. Keep studying regularly.";
-
         } else if (progress < 100) {
-
             progressMessage.textContent =
                 "Good progress. Keep learning and practicing.";
-
         } else {
-
             progressMessage.textContent =
                 "Great work. You are actively using your study assistant.";
         }
@@ -435,18 +575,11 @@ function updateLearningProgress(
 
 /* ---------------- LOAD PROGRESS ---------------- */
 
-function loadProgress() {
-
+async function loadProgress() {
     const tasks = getTaskCount();
-
-    const materials =
-        getMaterialCount();
-
-    const chatCount =
-        getChatCount();
-
-    const quizCount =
-        getQuizCount();
+    const materials = await getMaterialCount();
+    const chatCount = getChatCount();
+    const quizCount = getQuizCount();
 
     getQuizScore();
 
@@ -459,6 +592,5 @@ function loadProgress() {
 
     updateStudySummary();
 }
-
 
 loadProgress();
