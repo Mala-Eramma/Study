@@ -1,16 +1,18 @@
-// ============================================================
-// AI STUDY ASSISTANT - CHAT
-// Gemini AI + Chat History + Voice Input + Voice Output
-// ============================================================
+
+ // ============================================================
+ // AI STUDY ASSISTANT - CHAT
+ // Render Backend + Chat History + Voice Input + Voice Output
+ // ============================================================
 
 
 // ============================================================
-// 1. STORAGE KEYS
+// 1. STORAGE KEYS AND BACKEND URL
 // ============================================================
 
 const USER_KEY = "user";
 const HISTORY_KEY = "study_assistant_chat_history";
 const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
+const API_URL = "https://study-i3wy.onrender.com";
 
 
 // ============================================================
@@ -31,11 +33,7 @@ if (!user) {
     window.location.href = "login.html";
 }
 
-const userId =
-    user?.user_id ||
-    user?.id ||
-    user?.email ||
-    "guest";
+const userId = user?.user_id ?? user?.id ?? null;
 
 
 // ============================================================
@@ -120,13 +118,12 @@ function addMessage(message, type) {
     messageDiv.appendChild(paragraph);
 
     chatMessages.appendChild(messageDiv);
-
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 
 // ============================================================
-// 6. SAVE CHAT HISTORY
+// 6. SAVE CHAT HISTORY LOCALLY
 // ============================================================
 
 function saveChatHistory(subject, question, answer) {
@@ -156,7 +153,7 @@ function saveChatHistory(subject, question, answer) {
 
 
 // ============================================================
-// 7. SAVE CHAT TOPICS
+// 7. SAVE CHAT TOPICS LOCALLY
 // ============================================================
 
 function saveChatTopic(subject) {
@@ -180,80 +177,41 @@ function saveChatTopic(subject) {
 
 
 // ============================================================
-// 8. GEMINI AI ANSWER
+// 8. GENERATE AI ANSWER THROUGH RENDER BACKEND
 // ============================================================
 
 async function generateGeminiAnswer(subject, question) {
-    let apiKey = sessionStorage.getItem("GEMINI_API_KEY");
-
-    // Ask for the API key if it has not been entered
-    if (!apiKey) {
-        apiKey = window.prompt(
-            "Enter your Gemini API key:"
-        );
-
-        if (!apiKey || !apiKey.trim()) {
-            throw new Error(
-                "Gemini API key is required to generate an answer."
-            );
-        }
-
-        apiKey = apiKey.trim();
-
-        sessionStorage.setItem(
-            "GEMINI_API_KEY",
-            apiKey
+    if (
+        userId === null ||
+        userId === undefined ||
+        !/^\d+$/.test(String(userId))
+    ) {
+        throw new Error(
+            "Your login information does not contain a numeric user ID. Please log out and log in again."
         );
     }
-
-    const promptText = `
-You are an AI Study Assistant helping a student learn.
-
-Subject: ${subject}
-
-Student question:
-${question}
-
-Instructions:
-- Give a clear, accurate, beginner-friendly answer.
-- Explain the concept using simple language.
-- Include a definition when appropriate.
-- Include examples and real-world usage when relevant.
-- Use headings or bullet points when helpful.
-- Stay focused on the student's question.
-- Do not claim that the answer is hard-coded.
-- Provide programming code when the student asks for code.
-- Do not invent facts when uncertain.
-`;
 
     let response;
 
     try {
         response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            `${API_URL}/chat/?user_id=${encodeURIComponent(userId)}`,
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": apiKey
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    contents: [
-                        {
-                            role: "user",
-                            parts: [
-                                {
-                                    text: promptText
-                                }
-                            ]
-                        }
-                    ]
+                    subject: subject,
+                    question: question
                 })
             }
         );
     } catch (error) {
+        console.error("Backend connection error:", error);
+
         throw new Error(
-            "Could not connect to Gemini. Check your internet connection."
+            "Could not connect to the AI server. Please check your internet connection and try again."
         );
     }
 
@@ -263,34 +221,33 @@ Instructions:
         data = await response.json();
     } catch (error) {
         throw new Error(
-            "Gemini returned an invalid response."
+            "The AI server returned an invalid response. Please try again."
         );
     }
 
     if (!response.ok) {
-        // Remove an invalid or rejected key so it can be entered again.
-        if (
-            response.status === 400 ||
-            response.status === 401 ||
-            response.status === 403
-        ) {
-            sessionStorage.removeItem("GEMINI_API_KEY");
-        }
+        console.error("Backend error:", data);
+
+        const detail = Array.isArray(data?.detail)
+            ? data.detail
+                .map((item) => item.msg || "Invalid request")
+                .join(", ")
+            : data?.detail;
 
         throw new Error(
-            data?.error?.message ||
-            "Gemini could not generate an answer."
+            detail ||
+            `The AI server returned an error (${response.status}).`
         );
     }
 
-    const answer = data?.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text || "")
-        .join("")
-        .trim();
+    const answer =
+        typeof data?.answer === "string"
+            ? data.answer.trim()
+            : "";
 
     if (!answer) {
         throw new Error(
-            "Gemini returned an empty answer. Please try again."
+            "The AI server returned an empty answer. Please try again."
         );
     }
 
@@ -343,23 +300,23 @@ if (chatForm) {
         }
 
         try {
-            // Generate an answer using Gemini
+            // Generate an answer through the Render backend
             const answer = await generateGeminiAnswer(
                 subject,
                 question
             );
 
-            // Display the answer
+            // Display the AI answer
             addMessage(answer, "ai");
 
-            // Save the question and answer
+            // Save the question and answer locally
             saveChatHistory(
                 subject,
                 question,
                 answer
             );
 
-            // Save the subject
+            // Save the subject locally
             saveChatTopic(subject);
 
             // Read the answer aloud
