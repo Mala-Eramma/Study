@@ -104,6 +104,11 @@ class StudyTask(Base):
         Time,
         nullable=False
     )
+    reminder_sent = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
 
 
 # =========================================

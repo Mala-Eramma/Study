@@ -1475,3 +1475,51 @@ body .quiz-page .quiz-container .quiz-settings .submit-quiz {
         font-size: 21px;
     }
 }
+
+
+/* My Study Tasks section only */
+.planner-page .tasks-section {
+    margin-top: 30px;
+    padding: 24px;
+    background: #f0f7ff;
+    border-radius: 14px;
+}
+
+.planner-page .tasks-section h2 {
+    color: #123b70;
+    margin-bottom: 20px;
+}
+
+.planner-page #taskList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+}
+
+.planner-page #taskList > div {
+    background: #ffffff;
+    border: 1px solid #cfe0f5;
+    border-radius: 12px;
+    padding: 18px;
+    color: #222222;
+    box-shadow: 0 3px 10px rgba(20, 60, 110, 0.08);
+}
+
+.planner-page #taskList button {
+    background: #123b70;
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 16px;
+    margin-top: 12px;
+    cursor: pointer;
+}
+
+.planner-page #taskList button:hover {
+    background: #20589a;
+}
+
+.planner-page #taskList .empty-tasks {
+    grid-column: 1 / -1;
+    text-align: center;
+}

@@ -19,6 +19,7 @@ from .routes import (
     quiz
 )
 
+from sqlalchemy import inspect, text
 
 # =========================================
 # CREATE DATABASE TABLES
@@ -28,6 +29,20 @@ Base.metadata.create_all(
     bind=engine
 )
 
+# Add reminder tracking to existing study_tasks table
+columns = [
+    column["name"]
+    for column in inspect(engine).get_columns("study_tasks")
+]
+
+if "reminder_sent" not in columns:
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE study_tasks "
+                "ADD COLUMN reminder_sent INTEGER NOT NULL DEFAULT 0"
+            )
+        )
 
 
 
