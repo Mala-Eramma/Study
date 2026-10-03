@@ -1216,3 +1216,262 @@ body .quiz-page .quiz-container .quiz-settings .submit-quiz {
     }
 
 }
+
+/* =========================================
+   STUDY PLANNER TASK STRUCTURE
+========================================= */
+
+.planner-page {
+    width: 100%;
+    padding: 35px 20px;
+}
+
+.planner-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 8px 25px rgba(0, 30, 90, 0.10);
+}
+
+.planner-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.planner-header h1 {
+    color: #102a63;
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.planner-header p {
+    color: #5b6475;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* FORM STRUCTURE */
+
+.planner-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    padding: 25px;
+    background: #f1f6ff;
+    border: 1px solid #dce8ff;
+    border-radius: 14px;
+    margin-bottom: 35px;
+}
+
+.planner-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.planner-field label {
+    color: #172b4d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.planner-field input {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #172b4d;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.planner-field input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.planner-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 13px 18px;
+    background: #102a63;
+    color: #ffffff;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.planner-button:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+/* MY STUDY TASKS SECTION */
+
+.tasks-section {
+    margin-top: 25px;
+}
+
+.tasks-section h2 {
+    color: #102a63;
+    font-size: 23px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e4ecfb;
+}
+
+/* TASK CARD GRID */
+
+#taskList,
+#plannerList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+/* INDIVIDUAL TASK CARD */
+
+.planner-task {
+    position: relative;
+    min-width: 0;
+    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #dce5f3;
+    border-left: 5px solid #2563eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 40, 90, 0.07);
+    box-sizing: border-box;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.planner-task:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(15, 40, 90, 0.12);
+}
+
+.planner-task h3 {
+    margin: 0 0 12px;
+    color: #102a63;
+    font-size: 19px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.planner-task p {
+    margin: 9px 0;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+/* TASK DESCRIPTION */
+
+.planner-task p:nth-of-type(1) {
+    color: #253858;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+/* DATE AND TIME DETAILS */
+
+.planner-task p:nth-of-type(2),
+.planner-task p:nth-of-type(3) {
+    padding: 9px 11px;
+    background: #f1f6ff;
+    border-radius: 7px;
+    color: #344563;
+}
+
+/* DELETE BUTTON */
+
+.planner-task button {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: #ffffff;
+    color: #b42318;
+    border: 1px solid #f0b8b4;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.planner-task button:hover {
+    background: #b42318;
+    color: #ffffff;
+}
+
+/* EMPTY TASK MESSAGE */
+
+.empty-tasks {
+    grid-column: 1 / -1;
+    padding: 35px 20px;
+    text-align: center;
+    background: #f7faff;
+    border: 1px dashed #b7c9e8;
+    border-radius: 12px;
+}
+
+.empty-tasks p,
+#taskList > p,
+#plannerList > p {
+    color: #64748b;
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* RESPONSIVE LAYOUT */
+
+@media (max-width: 700px) {
+    .planner-page {
+        padding: 20px 12px;
+    }
+
+    .planner-container {
+        padding: 20px 15px;
+    }
+
+    .planner-header h1 {
+        font-size: 25px;
+    }
+
+    .planner-form {
+        grid-template-columns: 1fr;
+        padding: 18px;
+        gap: 16px;
+    }
+
+    .planner-button {
+        grid-column: auto;
+    }
+
+    #taskList,
+    #plannerList {
+        grid-template-columns: 1fr;
+    }
+
+    .planner-task {
+        padding: 18px;
+    }
+
+    .tasks-section h2 {
+        font-size: 21px;
+    }
+}

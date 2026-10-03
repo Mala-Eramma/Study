@@ -114,7 +114,7 @@ def check_study_tasks():
                     continue
 
                 send_study_reminder(
-                    "erammamala5@gmail.com",
+                    student.email,
                     student.name,
                     task.subject,
                     task.task

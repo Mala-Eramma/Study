@@ -3,8 +3,6 @@ const PLANNER_KEY = "study_assistant_planner";
 const USER_KEY = "user";
 
 const plannerForm = document.getElementById("plannerForm");
-
-// Fixed: this ID now matches planner.html.
 const plannerList = document.getElementById("taskList");
 
 
@@ -17,7 +15,7 @@ const userData = localStorage.getItem(USER_KEY);
 if (!userData) {
     window.location.href = "login.html";
 } else {
-    let user;
+    let user = null;
 
     try {
         user = JSON.parse(userData);
@@ -34,27 +32,30 @@ if (!userData) {
             user.user?.id ??
             user.user?.user_id;
 
+        const REMINDER_KEY =
+            "study_assistant_planner_reminders_" + String(userId);
+
         /* =========================================
            GET PLANNER TASKS
         ========================================= */
 
-        function getPlannerTasks() {
+        function getAllTasks() {
             try {
                 const tasks = JSON.parse(
                     localStorage.getItem(PLANNER_KEY) || "[]"
                 );
 
-                if (!Array.isArray(tasks)) {
-                    return [];
-                }
-
-                return tasks.filter(function (task) {
-                    return String(task.user_id) === String(userId);
-                });
+                return Array.isArray(tasks) ? tasks : [];
             } catch (error) {
                 console.error("Unable to read planner tasks:", error);
                 return [];
             }
+        }
+
+        function getPlannerTasks() {
+            return getAllTasks().filter(function (task) {
+                return String(task.user_id) === String(userId);
+            });
         }
 
         /* =========================================
@@ -63,26 +64,15 @@ if (!userData) {
 
         function savePlannerTasks(tasks) {
             try {
-                const allTasks = JSON.parse(
-                    localStorage.getItem(PLANNER_KEY) || "[]"
-                );
+                const allTasks = getAllTasks();
 
-                const safeTasks = Array.isArray(allTasks)
-                    ? allTasks
-                    : [];
-
-                const otherUsersTasks = safeTasks.filter(
-                    function (task) {
-                        return String(task.user_id) !== String(userId);
-                    }
-                );
+                const otherUsersTasks = allTasks.filter(function (task) {
+                    return String(task.user_id) !== String(userId);
+                });
 
                 localStorage.setItem(
                     PLANNER_KEY,
-                    JSON.stringify([
-                        ...otherUsersTasks,
-                        ...tasks
-                    ])
+                    JSON.stringify([...otherUsersTasks, ...tasks])
                 );
 
                 return true;
@@ -94,6 +84,190 @@ if (!userData) {
         }
 
         /* =========================================
+           REMINDER STATUS
+        ========================================= */
+
+        const reminderStatus = document.createElement("p");
+        reminderStatus.style.margin = "12px 0";
+        reminderStatus.style.fontSize = "14px";
+        reminderStatus.style.color = "#344563";
+        reminderStatus.setAttribute("role", "status");
+
+        const reminderButton = document.createElement("button");
+        reminderButton.type = "button";
+        reminderButton.textContent = "Enable Study Reminders";
+        reminderButton.style.margin = "8px 0 16px";
+        reminderButton.style.padding = "10px 16px";
+        reminderButton.style.backgroundColor = "darkblue";
+        reminderButton.style.color = "white";
+        reminderButton.style.border = "none";
+        reminderButton.style.borderRadius = "8px";
+        reminderButton.style.cursor = "pointer";
+
+        if (plannerForm) {
+            plannerForm.insertAdjacentElement("afterend", reminderButton);
+            reminderButton.insertAdjacentElement("afterend", reminderStatus);
+        }
+
+        function updateReminderStatus(message, color) {
+            reminderStatus.textContent = message;
+            reminderStatus.style.color = color || "#344563";
+        }
+
+        function updatePermissionStatus() {
+            if (!("Notification" in window)) {
+                reminderButton.disabled = true;
+                reminderButton.textContent = "Reminders Not Supported";
+
+                updateReminderStatus(
+                    "This browser does not support notifications.",
+                    "#b42318"
+                );
+                return;
+            }
+
+            if (Notification.permission === "granted") {
+                reminderButton.textContent = "Reminders Enabled";
+                updateReminderStatus(
+                    "Study reminders are enabled. Keep this page open.",
+                    "#18794e"
+                );
+            } else if (Notification.permission === "denied") {
+                reminderButton.textContent = "Notifications Blocked";
+
+                updateReminderStatus(
+                    "Notifications are blocked. Allow them in your browser's site settings.",
+                    "#b42318"
+                );
+            } else {
+                reminderButton.textContent = "Enable Study Reminders";
+
+                updateReminderStatus(
+                    "Enable notifications to receive reminders when tasks are due.",
+                    "#344563"
+                );
+            }
+        }
+
+        /* =========================================
+           ENABLE BROWSER NOTIFICATIONS
+        ========================================= */
+
+        reminderButton.addEventListener("click", async function () {
+            if (!("Notification" in window)) {
+                updatePermissionStatus();
+                return;
+            }
+
+            try {
+                if (Notification.permission === "default") {
+                    await Notification.requestPermission();
+                }
+
+                updatePermissionStatus();
+
+                if (Notification.permission === "granted") {
+                    checkDueReminders();
+                }
+            } catch (error) {
+                console.error("Notification permission error:", error);
+
+                updateReminderStatus(
+                    "Unable to enable notifications in this browser.",
+                    "#b42318"
+                );
+            }
+        });
+
+        /* =========================================
+           GET ALREADY-SENT REMINDERS
+        ========================================= */
+
+        function getSentReminders() {
+            try {
+                const reminders = JSON.parse(
+                    localStorage.getItem(REMINDER_KEY) || "[]"
+                );
+
+                return Array.isArray(reminders) ? reminders : [];
+            } catch (error) {
+                console.error("Unable to read reminder history:", error);
+                return [];
+            }
+        }
+
+        function saveSentReminders(reminders) {
+            try {
+                localStorage.setItem(
+                    REMINDER_KEY,
+                    JSON.stringify(reminders)
+                );
+            } catch (error) {
+                console.error("Unable to save reminder history:", error);
+            }
+        }
+
+        /* =========================================
+           CHECK AND SEND DUE REMINDERS
+        ========================================= */
+
+        function checkDueReminders() {
+            if (
+                !("Notification" in window) ||
+                Notification.permission !== "granted"
+            ) {
+                return;
+            }
+
+            const tasks = getPlannerTasks();
+            const sentReminders = getSentReminders();
+            const now = Date.now();
+
+            tasks.forEach(function (task) {
+                if (
+                    !task.id ||
+                    !task.study_date ||
+                    !task.study_time
+                ) {
+                    return;
+                }
+
+                const scheduledTime = new Date(
+                    `${task.study_date}T${task.study_time}`
+                ).getTime();
+
+                if (
+                    Number.isNaN(scheduledTime) ||
+                    scheduledTime > now ||
+                    sentReminders.includes(String(task.id))
+                ) {
+                    return;
+                }
+
+                try {
+                    const notification = new Notification(
+                        "Study Planner Reminder",
+                        {
+                            body:
+                                `${task.subject}: ${task.task}\n` +
+                                `Scheduled for ${task.study_date} at ${task.study_time}.`
+                        }
+                    );
+
+                    notification.onclick = function () {
+                        window.focus();
+                        notification.close();
+                    };
+
+                    sentReminders.push(String(task.id));
+                    saveSentReminders(sentReminders);
+                } catch (error) {
+                    console.error("Unable to send reminder:", error);
+                }
+            });
+        }
+
+        /* =========================================
            ADD NEW TASK
         ========================================= */
 
@@ -101,7 +275,10 @@ if (!userData) {
             const tasks = getPlannerTasks();
 
             const newTask = {
-                id: Date.now().toString(),
+                id:
+                    Date.now().toString() +
+                    "-" +
+                    Math.random().toString(36).slice(2, 8),
                 user_id: userId,
                 subject: taskData.subject,
                 task: taskData.task,
@@ -113,6 +290,7 @@ if (!userData) {
 
             if (savePlannerTasks(tasks)) {
                 loadTasks();
+                checkDueReminders();
                 return true;
             }
 
@@ -120,7 +298,7 @@ if (!userData) {
         }
 
         /* =========================================
-           DELETE TASK
+           DELETE INDIVIDUAL TASK
         ========================================= */
 
         function deleteTask(taskId) {
@@ -131,12 +309,19 @@ if (!userData) {
             });
 
             if (savePlannerTasks(updatedTasks)) {
+                const sentReminders = getSentReminders().filter(
+                    function (id) {
+                        return String(id) !== String(taskId);
+                    }
+                );
+
+                saveSentReminders(sentReminders);
                 loadTasks();
             }
         }
 
         /* =========================================
-           CREATE TASK ELEMENT
+           CREATE TASK CARD
         ========================================= */
 
         function createTaskElement(task) {
@@ -160,11 +345,11 @@ if (!userData) {
             deleteButton.textContent = "Delete";
 
             deleteButton.addEventListener("click", function () {
-                const confirmed = window.confirm(
-                    "Are you sure you want to delete this study task?"
-                );
-
-                if (confirmed) {
+                if (
+                    window.confirm(
+                        "Are you sure you want to delete this study task?"
+                    )
+                ) {
                     deleteTask(task.id);
                 }
             });
@@ -184,9 +369,7 @@ if (!userData) {
 
         function loadTasks() {
             if (!plannerList) {
-                console.error(
-                    'Task container "#taskList" was not found.'
-                );
+                console.error('Task container "#taskList" was not found.');
                 return;
             }
 
@@ -203,11 +386,9 @@ if (!userData) {
 
                 message.appendChild(paragraph);
                 plannerList.appendChild(message);
-
                 return;
             }
 
-            // Sort tasks by scheduled date and time.
             tasks.sort(function (a, b) {
                 const dateA = new Date(
                     `${a.study_date}T${a.study_time}`
@@ -272,6 +453,11 @@ if (!userData) {
            START
         ========================================= */
 
+        updatePermissionStatus();
         loadTasks();
+        checkDueReminders();
+
+        // Check every 15 seconds while this page is open.
+        window.setInterval(checkDueReminders, 15000);
     }
 }
