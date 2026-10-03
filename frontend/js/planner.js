@@ -12,43 +12,45 @@ const taskList = document.getElementById("taskList");
 let currentUser = {};
 
 try {
-    currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+    currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "{}") || {};
 } catch (error) {
     console.error("Unable to read user information:", error);
 }
 
-const currentUserId =
-    currentUser.user_id || currentUser.id || localStorage.getItem("user_id");
+const storedUserId =
+    currentUser.user_id ??
+    currentUser.id ??
+    localStorage.getItem("user_id");
 
-function getTaskForm() {
-    return plannerForm;
-}
-
-function getFormValues() {
-    return {
-        subject: subjectInput?.value.trim() || "",
-        description: taskInput?.value.trim() || "",
-        date: dateInput?.value || "",
-        time: timeInput?.value || "",
-        subjectInput,
-        taskInput,
-        dateInput,
-        timeInput
-    };
-}
+const currentUserId = Number(storedUserId);
 
 function showMessage(message, type = "success") {
-    let element = document.getElementById("plannerMessage");
+    let messageElement = document.getElementById("plannerMessage");
 
-    if (!element) {
-        element = document.createElement("p");
-        element.id = "plannerMessage";
-        element.setAttribute("role", "status");
-        plannerForm.insertAdjacentElement("afterend", element);
+    if (!messageElement && plannerForm) {
+        messageElement = document.createElement("p");
+        messageElement.id = "plannerMessage";
+        messageElement.setAttribute("role", "status");
+        plannerForm.insertAdjacentElement("afterend", messageElement);
     }
 
-    element.textContent = message;
-    element.style.color = type === "error" ? "#dc2626" : "#15803d";
+    if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.style.color =
+            type === "error" ? "#dc2626" : "#15803d";
+    }
+}
+
+function validateUserId() {
+    if (!Number.isInteger(currentUserId) || currentUserId <= 0) {
+        showMessage(
+            "Your numeric user ID is missing. Please log out and log in again.",
+            "error"
+        );
+        return false;
+    }
+
+    return true;
 }
 
 async function apiRequest(path, options = {}) {
@@ -60,18 +62,22 @@ async function apiRequest(path, options = {}) {
         }
     });
 
-    const text = await response.text();
+    const responseText = await response.text();
     let result = {};
 
     try {
-        result = text ? JSON.parse(text) : {};
+        result = responseText ? JSON.parse(responseText) : {};
     } catch {
-        result = { message: text };
+        result = { message: responseText };
     }
 
     if (!response.ok) {
+        const detail = Array.isArray(result.detail)
+            ? result.detail.map(item => item.msg || JSON.stringify(item)).join(", ")
+            : result.detail;
+
         throw new Error(
-            result.detail || result.message || `Request failed (${response.status})`
+            detail || result.message || `Server error (${response.status})`
         );
     }
 
@@ -82,9 +88,10 @@ function formatDate(date) {
     if (!date) return "";
 
     const parts = String(date).split("-");
+
     return parts.length === 3
         ? `${parts[2]}-${parts[1]}-${parts[0]}`
-        : date;
+        : String(date);
 }
 
 function formatTime(time) {
@@ -118,6 +125,7 @@ function displayTasks(tasks) {
     tasks.sort((a, b) => {
         const dateA = `${a.study_date || ""}T${a.study_time || ""}`;
         const dateB = `${b.study_date || ""}T${b.study_time || ""}`;
+
         return dateA.localeCompare(dateB);
     });
 
@@ -155,10 +163,7 @@ function displayTasks(tasks) {
 }
 
 async function loadTasks() {
-    if (!currentUserId) {
-        showMessage("Please log in again to schedule study tasks.", "error");
-        return;
-    }
+    if (!validateUserId()) return;
 
     try {
         const tasks = await apiRequest(
@@ -168,8 +173,9 @@ async function loadTasks() {
         displayTasks(tasks);
     } catch (error) {
         console.error("Unable to load study tasks:", error);
+
         showMessage(
-            `Unable to load tasks: ${error.message}. Please try again.`,
+            `Unable to load tasks: ${error.message}`,
             "error"
         );
     }
@@ -178,24 +184,19 @@ async function loadTasks() {
 async function addTask(event) {
     event.preventDefault();
 
-    if (!currentUserId) {
-        showMessage("Please log in again before scheduling a task.", "error");
-        return;
-    }
+    if (!validateUserId()) return;
 
-    const values = getFormValues();
+    const subject = subjectInput?.value.trim() || "";
+    const description = taskInput?.value.trim() || "";
+    const date = dateInput?.value || "";
+    const time = timeInput?.value || "";
 
-    if (
-        !values.subject ||
-        !values.description ||
-        !values.date ||
-        !values.time
-    ) {
+    if (!subject || !description || !date || !time) {
         showMessage("Please fill in all task details.", "error");
         return;
     }
 
-    const selectedDateTime = new Date(`${values.date}T${values.time}`);
+    const selectedDateTime = new Date(`${date}T${time}`);
 
     if (Number.isNaN(selectedDateTime.getTime())) {
         showMessage("Please select a valid date and time.", "error");
@@ -209,7 +210,9 @@ async function addTask(event) {
 
     const submitButton = plannerForm.querySelector('button[type="submit"]');
 
-    if (submitButton) submitButton.disabled = true;
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
 
     try {
         const result = await apiRequest(
@@ -217,10 +220,10 @@ async function addTask(event) {
             {
                 method: "POST",
                 body: JSON.stringify({
-                    subject: values.subject,
-                    task: values.description,
-                    study_date: values.date,
-                    study_time: values.time
+                    subject: subject,
+                    task: description,
+                    study_date: date,
+                    study_time: time
                 })
             }
         );
@@ -232,24 +235,30 @@ async function addTask(event) {
         }
 
         plannerForm.reset();
+
         showMessage("Study task scheduled successfully.", "success");
 
         await loadTasks();
     } catch (error) {
         console.error("Unable to schedule study task:", error);
+
         showMessage(
             `Unable to schedule task: ${error.message}`,
             "error"
         );
     } finally {
-        if (submitButton) submitButton.disabled = false;
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
     }
 }
 
 async function deleteTask(taskId, button) {
-    if (!currentUserId) return;
+    if (!validateUserId()) return;
 
-    if (button) button.disabled = true;
+    if (button) {
+        button.disabled = true;
+    }
 
     try {
         await apiRequest(
@@ -258,15 +267,19 @@ async function deleteTask(taskId, button) {
         );
 
         showMessage("Study task deleted successfully.", "success");
+
         await loadTasks();
     } catch (error) {
         console.error("Unable to delete study task:", error);
+
         showMessage(
             `Unable to delete task: ${error.message}`,
             "error"
         );
 
-        if (button) button.disabled = false;
+        if (button) {
+            button.disabled = false;
+        }
     }
 }
 
