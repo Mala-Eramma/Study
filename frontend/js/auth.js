@@ -1,154 +1,118 @@
+const API_URL = "https://ai-study-assistant-planner-kr9h.onrender.com";
+
 document.addEventListener("DOMContentLoaded", () => {
-
-    // =========================
-    // REGISTER
-    // =========================
-
     const registerForm = document.getElementById("registerForm");
+    const loginForm = document.getElementById("loginForm");
 
+    function showMessage(element, message, isError = false) {
+        element.textContent = message;
+        element.style.color = isError ? "red" : "green";
+    }
+
+    async function sendRequest(endpoint, data) {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.detail || "Request failed. Please try again."
+            );
+        }
+
+        return result;
+    }
+
+    // REGISTER
     if (registerForm) {
+        const message = document.getElementById("registerMessage");
 
-        registerForm.addEventListener("submit", function (event) {
+        registerForm.addEventListener("submit", async (event) => {
             event.preventDefault();
 
             const name = document.getElementById("name").value.trim();
             const email = document.getElementById("email").value.trim().toLowerCase();
             const password = document.getElementById("password").value;
-            const confirmPassword =
-                document.getElementById("confirmPassword").value;
-
-            const message = document.getElementById("registerMessage");
-
-            if (!name || !email || !password || !confirmPassword) {
-                message.textContent = "Please fill in all fields.";
-                message.style.color = "red";
-                return;
-            }
+            const confirmPassword = document.getElementById("confirmPassword").value;
 
             if (password !== confirmPassword) {
-                message.textContent = "Passwords do not match.";
-                message.style.color = "red";
+                showMessage(message, "Passwords do not match.", true);
                 return;
             }
 
             if (password.length < 6) {
-                message.textContent =
-                    "Password must contain at least 6 characters.";
-                message.style.color = "red";
+                showMessage(message, "Password must contain at least 6 characters.", true);
                 return;
             }
 
-            let users = JSON.parse(
-                localStorage.getItem("study_assistant_users")
-            ) || [];
+            try {
+                showMessage(message, "Registering your account...");
 
-            const existingUser = users.find(
-                user => user.email === email
-            );
+                await sendRequest("/auth/register", {
+                    name,
+                    email,
+                    password
+                });
 
-            if (existingUser) {
-                message.textContent = "Email already registered.";
-                message.style.color = "red";
-                return;
+                showMessage(message, "Registration successful. Please log in.");
+                registerForm.reset();
+
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 1000);
+            } catch (error) {
+                showMessage(message, error.message, true);
             }
-
-            const newUser = {
-                id: Date.now(),
-                name: name,
-                email: email,
-                password: password
-            };
-
-            users.push(newUser);
-
-            localStorage.setItem(
-                "study_assistant_users",
-                JSON.stringify(users)
-            );
-
-            message.textContent = "Registration successful.";
-            message.style.color = "green";
-
-            registerForm.reset();
-
-            setTimeout(() => {
-                window.location.href = "login.html";
-            }, 1000);
         });
     }
 
-
-    // =========================
     // LOGIN
-    // =========================
-
-    const loginForm = document.getElementById("loginForm");
-
     if (loginForm) {
+        let message = document.getElementById("loginMessage");
 
-        let loginMessage = document.getElementById("loginMessage");
-
-        if (!loginMessage) {
-            loginMessage = document.createElement("p");
-            loginMessage.id = "loginMessage";
-            loginMessage.style.marginTop = "10px";
-
-            loginForm.appendChild(loginMessage);
+        if (!message) {
+            message = document.createElement("p");
+            message.id = "loginMessage";
+            loginForm.appendChild(message);
         }
 
-        loginForm.addEventListener("submit", function (event) {
+        loginForm.addEventListener("submit", async (event) => {
             event.preventDefault();
 
-            const email =
-                document.getElementById("email").value.trim().toLowerCase();
+            const email = document.getElementById("email").value.trim().toLowerCase();
+            const password = document.getElementById("password").value;
 
-            const password =
-                document.getElementById("password").value;
+            try {
+                showMessage(message, "Logging in...");
 
-            const users = JSON.parse(
-                localStorage.getItem("study_assistant_users")
-            ) || [];
+                const result = await sendRequest("/auth/login", {
+                    email,
+                    password
+                });
 
-            const user = users.find(
-                item =>
-                    item.email === email &&
-                    item.password === password
-            );
+                if (!result.user || !result.user.id) {
+                    throw new Error("The server did not return a valid user ID.");
+                }
 
-            if (!user) {
-                loginMessage.textContent =
-                    "Invalid email or password.";
-                loginMessage.style.color = "red";
-                return;
+                localStorage.setItem("user", JSON.stringify(result.user));
+                localStorage.setItem("user_id", String(result.user.id));
+                localStorage.setItem("user_name", result.user.name);
+                localStorage.setItem("user_email", result.user.email);
+
+                showMessage(message, "Login successful.");
+
+                setTimeout(() => {
+                    window.location.href = "dashboard.html";
+                }, 500);
+            } catch (error) {
+                showMessage(message, error.message, true);
             }
-
-            localStorage.setItem(
-                "user",
-                JSON.stringify(user)
-            );
-
-            localStorage.setItem(
-                "user_id",
-                user.id
-            );
-
-            localStorage.setItem(
-                "user_name",
-                user.name
-            );
-
-            localStorage.setItem(
-                "user_email",
-                user.email
-            );
-
-            loginMessage.textContent = "Login successful.";
-            loginMessage.style.color = "green";
-
-            setTimeout(() => {
-                window.location.href = "dashboard.html";
-            }, 800);
         });
     }
-
 });
