@@ -1,4 +1,4 @@
-const API_URL = "https://ai-study-assistant-planner-kr9h.onrender.com";
+const API_URL = "https://study-i3wy.onrender.com";
 
 document.addEventListener("DOMContentLoaded", () => {
     const registerForm = document.getElementById("registerForm");
