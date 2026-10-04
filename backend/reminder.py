@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -8,59 +7,26 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 
 from .database import SessionLocal
-from .models import StudyTask, User
+from .models import User, StudyTask
 
 
 load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
-FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL")
+FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 
 IST = ZoneInfo("Asia/Kolkata")
 
 scheduler = BackgroundScheduler(timezone=IST)
 
 
-def send_study_reminder(student_email, student_name, subject, task):
-    if not resend.api_key:
-        print("ERROR: RESEND_API_KEY is missing.")
-        return False
-
-    if not FROM_EMAIL:
-        print("ERROR: RESEND_FROM_EMAIL is missing.")
-        return False
-
-    try:
-        resend.Emails.send(
-            {
-                "from": FROM_EMAIL,
-                "to": [student_email],
-                "subject": "AI Study Assistant - Study Reminder",
-                "html": f"""
-                    <h2>Study Reminder</h2>
-                    <p>Hello {student_name},</p>
-                    <p>It is time for your planned study session.</p>
-                    <p><strong>Subject:</strong> {subject}</p>
-                    <p><strong>Task:</strong> {task}</p>
-                    <p>Keep learning and stay consistent!</p>
-                """
-            }
-        )
-
-        print(f"Reminder email sent to {student_email}")
-        return True
-
-    except Exception as error:
-        print(f"Unable to send reminder email: {error}")
-        return False
-
-
-
-def check_study_tasks():
+def check_study_reminders():
     db = SessionLocal()
 
     try:
         now = datetime.now(IST)
+
+        print(f"\nReminder checker running at {now}")
 
         tasks = (
             db.query(StudyTask)
@@ -71,46 +37,74 @@ def check_study_tasks():
             .all()
         )
 
-        for study_task in tasks:
-            task_datetime = datetime.combine(
-                study_task.study_date,
-                study_task.study_time,
-                tzinfo=IST
-            )
+        print(f"Pending tasks found for today: {len(tasks)}")
 
-            # Send the reminder if the scheduled time has arrived,
-            # even if the scheduler checks a little late.
-            if task_datetime > now:
-                continue
+        for task in tasks:
+            try:
+                scheduled_time = datetime.combine(
+                    task.study_date,
+                    task.study_time
+                ).replace(tzinfo=IST)
 
-            student = (
-                db.query(User)
-                .filter(User.id == study_task.user_id)
-                .first()
-            )
+                if scheduled_time > now:
+                    continue
 
-            if not student:
-                print(
-                    f"Student not found for task ID {study_task.id}"
+                user = (
+                    db.query(User)
+                    .filter(User.id == task.user_id)
+                    .first()
                 )
-                continue
 
-            email_sent = send_study_reminder(
-                student.email,
-                student.name,
-                study_task.subject,
-                study_task.task
-            )
+                if not user or not user.email:
+                    print(f"No email address found for task {task.id}")
+                    continue
 
-            if email_sent:
-                study_task.reminder_sent = 1
-                db.commit()
+                if not resend.api_key:
+                    print("RESEND_API_KEY is missing from .env")
+                    continue
+
+                subject = task.subject or "Study Reminder"
+                description = task.task or "Your scheduled study session"
+
+                email_html = f"""
+                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                    <h2>AI Study Assistant - Study Reminder</h2>
+                    <p>Hello {user.name or 'Student'},</p>
+                    <p>This is a reminder for your scheduled study session.</p>
+                    <p><strong>Subject:</strong> {subject}</p>
+                    <p><strong>Task:</strong> {description}</p>
+                    <p><strong>Date:</strong> {task.study_date}</p>
+                    <p><strong>Time:</strong> {task.study_time}</p>
+                    <p>It's time to start studying. Good luck!</p>
+                    <p>AI Study Assistant</p>
+                </div>
+                """
+
+                response = resend.Emails.send({
+                    "from": FROM_EMAIL,
+                    "to": [user.email],
+                    "subject": f"Study Reminder: {subject}",
+                    "html": email_html
+                })
+
+                if response:
+                    task.reminder_sent = 1
+                    db.commit()
+
+                    print(
+                        f"Reminder email submitted for {user.email}, "
+                        f"task ID {task.id}"
+                    )
+                else:
+                    print(f"Email was not accepted for task {task.id}")
+
+            except Exception as error:
+                db.rollback()
                 print(
-                    f"Reminder completed for task ID {study_task.id}"
+                    f"Failed to send reminder for task {task.id}: {error}"
                 )
 
     except Exception as error:
-        db.rollback()
         print(f"Reminder checker error: {error}")
 
     finally:
@@ -118,17 +112,15 @@ def check_study_tasks():
 
 
 def start_reminder_scheduler():
-    if scheduler.running:
-        return
+    if not scheduler.running:
+        scheduler.add_job(
+            check_study_reminders,
+            trigger="interval",
+            seconds=10,
+            id="study_reminders",
+            replace_existing=True,
+            max_instances=1
+        )
 
-    scheduler.add_job(
-        check_study_tasks,
-        "interval",
-        minutes=1,
-        id="study_reminder_checker",
-        replace_existing=True,
-        max_instances=1
-    )
-
-    scheduler.start()
-    print("Study reminder scheduler started (Asia/Kolkata).")
+        scheduler.start()
+        print("Study reminder scheduler started (Asia/Kolkata).")

@@ -1,77 +1,120 @@
-from fastapi import APIRouter, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..database import get_db
-from ..models import StudyTask
+from ..models import User, StudyTask
 from ..schemas import StudyTaskCreate
-
 
 router = APIRouter()
 
 
-@router.post("/")
-def create_task(
-    task_data: StudyTaskCreate,
-    user_id: int,
-    db: Session = Depends(get_db)
-):
-    new_task = StudyTask(
-        user_id=user_id,
-        subject=task_data.subject,
-        task=task_data.task,
-        study_date=task_data.study_date,
-        study_time=task_data.study_time
-    )
+def find_user(user_id: int, db: Session):
+    user = db.query(User).filter(User.id == user_id).first()
 
-    db.add(new_task)
-    db.commit()
-    db.refresh(new_task)
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid user ID. Please log out and log in again."
+        )
 
-    return {
-        "message": "Study task created successfully.",
-        "task_id": new_task.id
-    }
+    return user
 
 
 @router.get("/")
-def get_tasks(
-    user_id: int,
+def list_tasks(
+    user_id: int = Query(..., gt=0),
     db: Session = Depends(get_db)
 ):
+    user = find_user(user_id, db)
+
     tasks = (
         db.query(StudyTask)
-        .filter(
-            StudyTask.user_id == user_id
-        )
+        .filter(StudyTask.user_id == user.id)
+        .order_by(StudyTask.study_date, StudyTask.study_time)
         .all()
     )
 
-    return tasks
+    return [
+        {
+            "id": item.id,
+            "subject": item.subject,
+            "task": item.task,
+            "study_date": str(item.study_date),
+            "study_time": str(item.study_time),
+            "reminder_sent": item.reminder_sent
+        }
+        for item in tasks
+    ]
+
+
+@router.post("/")
+def create_task(
+    data: StudyTaskCreate,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db)
+):
+    user = find_user(user_id, db)
+
+    new_task = StudyTask(
+        user_id=user.id,
+        subject=data.subject.strip(),
+        task=data.task.strip(),
+        study_date=data.study_date,
+        study_time=data.study_time,
+        reminder_sent=0
+    )
+
+    try:
+        db.add(new_task)
+        db.commit()
+        db.refresh(new_task)
+
+        return {
+            "message": "Task saved successfully",
+            "task_id": new_task.id
+        }
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to save the task to the database."
+        )
 
 
 @router.delete("/{task_id}")
-def delete_task(
+def remove_task(
     task_id: int,
-    user_id: int,
+    user_id: int = Query(..., gt=0),
     db: Session = Depends(get_db)
 ):
+    user = find_user(user_id, db)
+
     task = (
         db.query(StudyTask)
         .filter(
             StudyTask.id == task_id,
-            StudyTask.user_id == user_id
+            StudyTask.user_id == user.id
         )
         .first()
     )
 
-    if not task:
-        return {
-            "message": "Study task not found."
-        }
+    if task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found."
+        )
 
-    db.delete(task)
-    db.commit()
+    try:
+        db.delete(task)
+        db.commit()
+        return {"message": "Task deleted successfully"}
 
-    return {
-        "message": "Study task deleted successfully."
-    }
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete the task."
+        )

@@ -1,218 +1,95 @@
-from sqlalchemy import Column, Integer, String, Text, Date, Time, Float, DateTime
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 
-from .database import Base
+from ..database import get_db
+from ..models import User
+from ..schemas import UserRegister, UserLogin
 
+router = APIRouter()
 
-# =========================================
-# USER
-# =========================================
-
-class User(Base):
-
-    __tablename__ = "users"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    name = Column(
-        String(100),
-        nullable=False
-    )
-
-    email = Column(
-        String(150),
-        unique=True,
-        nullable=False,
-        index=True
-    )
-
-    password = Column(
-        String(255),
-        nullable=False
-    )
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
 
 
-# =========================================
-# STUDY MATERIAL
-# =========================================
+# REGISTER
+@router.post("/register")
+def register(
+    user_data: UserRegister,
+    db: Session = Depends(get_db)
+):
+    email = user_data.email.strip().lower()
 
-class StudyMaterial(Base):
+    existing_user = db.query(User).filter(
+        User.email == email
+    ).first()
 
-    __tablename__ = "study_materials"
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered. Please log in."
+        )
 
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
+    try:
+        new_user = User(
+            name=user_data.name.strip(),
+            email=email,
+            password=pwd_context.hash(user_data.password)
+        )
 
-    user_id = Column(
-        Integer,
-        nullable=False
-    )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    filename = Column(
-        String(255),
-        nullable=False
-    )
+        return {
+            "message": "Registration successful",
+            "user_id": new_user.id,
+            "user": {
+                "id": new_user.id,
+                "user_id": new_user.id,
+                "name": new_user.name,
+                "email": new_user.email
+            }
+        }
 
-    file_path = Column(
-        String(500),
-        nullable=False
-    )
-
-
-# =========================================
-# STUDY TASK
-# =========================================
-
-class StudyTask(Base):
-
-    __tablename__ = "study_tasks"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    user_id = Column(
-        Integer,
-        nullable=False
-    )
-
-    subject = Column(
-        String(100),
-        nullable=False
-    )
-
-    task = Column(
-        Text,
-        nullable=False
-    )
-
-    study_date = Column(
-        Date,
-        nullable=False
-    )
-
-    study_time = Column(
-        Time,
-        nullable=False
-    )
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Registration failed. Please try again."
+        )
 
 
-# =========================================
-# QUIZ RESULT
-# =========================================
+# LOGIN
+@router.post("/login")
+def login(
+    user_data: UserLogin,
+    db: Session = Depends(get_db)
+):
+    email = user_data.email.strip().lower()
 
-class QuizResult(Base):
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
 
-    __tablename__ = "quiz_results"
+    if not user or not pwd_context.verify(
+        user_data.password,
+        user.password
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password."
+        )
 
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    user_id = Column(
-        Integer,
-        nullable=False
-    )
-
-    subject = Column(
-        String(100),
-        nullable=False
-    )
-
-    score = Column(
-        Float,
-        nullable=False
-    )
-
-    total_questions = Column(
-        Integer,
-        nullable=False
-    )
-
-
-# =========================================
-# LEARNING ACTIVITY
-# =========================================
-
-class LearningActivity(Base):
-
-    __tablename__ = "learning_activities"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    user_id = Column(
-        Integer,
-        nullable=False
-    )
-
-    subject = Column(
-        String(100),
-        nullable=False
-    )
-
-    topic = Column(
-        String(255),
-        nullable=False
-    )
-
-    activity = Column(
-        String(255),
-        nullable=False
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
-
-
-# =========================================
-# CHAT HISTORY
-# =========================================
-
-class ChatHistory(Base):
-
-    __tablename__ = "chat_history"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    user_id = Column(
-        Integer,
-        nullable=False
-    )
-
-    question = Column(
-        Text,
-        nullable=False
-    )
-
-    answer = Column(
-        Text,
-        nullable=False
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
+    return {
+        "message": "Login successful",
+        "user_id": user.id,
+        "user": {
+            "id": user.id,
+            "user_id": user.id,
+            "name": user.name,
+            "email": user.email
+        }
+    }
