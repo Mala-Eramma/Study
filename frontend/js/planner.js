@@ -9,7 +9,7 @@ const API_URL = (
     window.location.hostname === "127.0.0.1"
 )
     ? "http://127.0.0.1:8000"
-    : "https://ai-study-assistant-planner-kr9h.onrender.com";
+    : "https://study-i3wy.onrender.com";
 const USER_KEY = "user";
 const DATABASE_USER_ID =Number(localStorage.getItem("user_id")) ;
 
