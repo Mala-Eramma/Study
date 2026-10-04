@@ -68,7 +68,7 @@ async function getTaskCount() {
         }
 
         const response = await fetch(
-            `https://study-i3wy.onrender.com/planner/?user_id=${encodeURIComponent(userId)}`
+            `https://ai-study-assistant-planner-kr9h.onrender.com/planner/?user_id=${encodeURIComponent(userId)}`
         );
 
         if (!response.ok) {
