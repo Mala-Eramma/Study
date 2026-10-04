@@ -58,14 +58,39 @@ function getUserData(key) {
 
 /* ---------------- TASKS ---------------- */
 
-function getTaskCount() {
-    const tasks = getUserData(PLANNER_KEY);
+async function getTaskCount() {
+    try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const userId = user.id || user.user_id;
 
-    if (taskCount) {
-        taskCount.textContent = tasks.length;
+        if (!userId) {
+            throw new Error("Invalid user ID.");
+        }
+
+        const response = await fetch(
+            `https://study-i3wy.onrender.com/planner/?user_id=${encodeURIComponent(userId)}`
+        );
+
+        if (!response.ok) {
+            throw new Error("Unable to load study tasks.");
+        }
+
+        const tasks = await response.json();
+
+        if (taskCount) {
+            taskCount.textContent = tasks.length;
+        }
+
+        return tasks.length;
+    } catch (error) {
+        console.error("Unable to load progress tasks:", error);
+
+        if (taskCount) {
+            taskCount.textContent = "0";
+        }
+
+        return 0;
     }
-
-    return tasks.length;
 }
 
 
@@ -576,7 +601,7 @@ function updateLearningProgress(tasks, materials, chatCount, quizCount) {
 /* ---------------- LOAD PROGRESS ---------------- */
 
 async function loadProgress() {
-    const tasks = getTaskCount();
+    const tasks = await getTaskCount();
     const materials = await getMaterialCount();
     const chatCount = getChatCount();
     const quizCount = getQuizCount();
