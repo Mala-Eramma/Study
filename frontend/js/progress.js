@@ -1,10 +1,11 @@
-
 const USER_KEY = "user";
 const PLANNER_KEY = "study_assistant_planner";
 const MATERIALS_KEY = "study_assistant_materials";
 const CHAT_HISTORY_KEY = "study_assistant_chat_history";
 const CHAT_TOPICS_KEY = "study_assistant_chat_topics";
 const QUIZ_PROGRESS_KEY = "study_assistant_quiz_progress";
+
+const API_URL = "https://study-i3wy.onrender.com";
 
 const userData = localStorage.getItem(USER_KEY);
 
@@ -42,11 +43,14 @@ function getUserData(key) {
         }
 
         return data.filter(item => {
-            if (!item || typeof item !== "object") return false;
+            if (!item || typeof item !== "object") {
+                return false;
+            }
 
             const itemUserId = item.user_id ?? item.userId;
 
             return itemUserId == null ||
+                !userId ||
                 String(itemUserId) === String(userId);
         });
     } catch (error) {
@@ -58,46 +62,57 @@ function getUserData(key) {
 
 /* ---------------- TASKS ---------------- */
 
+// Read tasks from the existing Planner backend.
+// Fall back to locally saved tasks if the API is unavailable.
+
 async function getTaskCount() {
     try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const userId = user.id || user.user_id;
-
         if (!userId) {
             throw new Error("Invalid user ID.");
         }
 
         const response = await fetch(
-            `https://ai-study-assistant-planner-kr9h.onrender.com/planner/?user_id=${encodeURIComponent(userId)}`
+            `${API_URL}/planner/?user_id=${encodeURIComponent(userId)}`
         );
 
         if (!response.ok) {
-            throw new Error("Unable to load study tasks.");
+            throw new Error(
+                `Unable to load study tasks. Status: ${response.status}`
+            );
         }
 
-        const tasks = await response.json();
+        const data = await response.json();
+
+        const tasks = Array.isArray(data)
+            ? data
+            : Array.isArray(data.tasks)
+                ? data.tasks
+                : [];
 
         if (taskCount) {
             taskCount.textContent = tasks.length;
         }
 
         return tasks.length;
+
     } catch (error) {
-        console.error("Unable to load progress tasks:", error);
+        console.error("Unable to load progress tasks from API:", error);
+
+        const localTasks = getUserData(PLANNER_KEY);
 
         if (taskCount) {
-            taskCount.textContent = "0";
+            taskCount.textContent = localTasks.length;
         }
 
-        return 0;
+        return localTasks.length;
     }
 }
 
 
 /* ---------------- MATERIALS ---------------- */
 
-// Read materials from the existing IndexedDB database.
-// Keep localStorage as a fallback for older saved records.
+// Read materials from IndexedDB.
+// Use localStorage as a fallback for older saved materials.
 
 async function getMaterialCount() {
     const DB_NAME = "AIStudyAssistantMaterialsDB";
@@ -151,16 +166,18 @@ async function getMaterialCount() {
 
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => reject(request.error);
-
             transaction.onerror = () => reject(transaction.error);
         });
 
         const materials = records.filter(item => {
-            if (!item || typeof item !== "object") return false;
+            if (!item || typeof item !== "object") {
+                return false;
+            }
 
             const itemUserId = item.user_id ?? item.userId;
 
             return itemUserId == null ||
+                !userId ||
                 String(itemUserId) === String(userId);
         });
 
@@ -194,6 +211,8 @@ async function getMaterialCount() {
 
 /* ---------------- CHAT ---------------- */
 
+// Read existing chat records without modifying Chat functionality.
+
 function getChatCount() {
     return getUserData(CHAT_HISTORY_KEY).length;
 }
@@ -201,8 +220,7 @@ function getChatCount() {
 
 /* ---------------- QUIZ ---------------- */
 
-// Read the existing quiz progress key first.
-// If it is empty, look for other existing quiz-related localStorage keys.
+// Read saved quiz records and support common score formats.
 
 function getQuizData() {
     const primaryData = getUserData(QUIZ_PROGRESS_KEY);
@@ -221,7 +239,7 @@ function getQuizData() {
                 continue;
             }
 
-            if (key === USER_KEY) {
+            if (key === USER_KEY || key === QUIZ_PROGRESS_KEY) {
                 continue;
             }
 
@@ -254,22 +272,24 @@ function getQuizData() {
             }
 
             records.forEach(item => {
-                if (!item || typeof item !== "object") return;
+                if (!item || typeof item !== "object") {
+                    return;
+                }
 
                 const itemUserId = item.user_id ?? item.userId;
 
                 if (
                     itemUserId != null &&
+                    userId &&
                     String(itemUserId) !== String(userId)
                 ) {
                     return;
                 }
 
-                const hasScore =
+                if (
                     item.percentage != null ||
-                    item.score != null;
-
-                if (hasScore) {
+                    item.score != null
+                ) {
                     quizRecords.push(item);
                 }
             });
@@ -364,6 +384,8 @@ function detectSubject(topic) {
 
     if (
         q.includes("html") ||
+        q.includes("iframe") ||
+        q.includes("i frame") ||
         q.includes("anchor") ||
         q.includes("root element") ||
         q.includes("tag") ||
@@ -386,10 +408,8 @@ function detectSubject(topic) {
 
     if (
         q.includes("javascript") ||
-        q.includes("array") ||
-        q.includes("let ") ||
-        q.includes("const ") ||
-        q.includes("dom")
+        q.includes("dom") ||
+        q.includes("event listener")
     ) {
         return "JavaScript";
     }
@@ -465,7 +485,9 @@ function getLearnedSubjects() {
         const subject = detectSubject(topic);
         const topicName = getTopicName(topic);
 
-        if (!topicName) return;
+        if (!topicName) {
+            return;
+        }
 
         if (!subjects[subject]) {
             subjects[subject] = [];
@@ -488,7 +510,9 @@ function getLearnedSubjects() {
 /* ---------------- STUDY SUMMARY ---------------- */
 
 function updateStudySummary() {
-    if (!studySummary) return;
+    if (!studySummary) {
+        return;
+    }
 
     studySummary.innerHTML = "";
 
@@ -502,6 +526,7 @@ function updateStudySummary() {
 
     const header = document.createElement("div");
     header.className = "study-summary-header";
+
     header.innerHTML = `
         <div>
             <p>My Learning Summary</p>
@@ -515,6 +540,7 @@ function updateStudySummary() {
     if (subjectNames.length === 0) {
         const empty = document.createElement("div");
         empty.className = "summary-empty";
+
         empty.innerHTML = `
             <p>No learning activity recorded yet.</p>
             <span>Start learning through AI Chat to see your subjects and topics here.</span>
@@ -567,10 +593,21 @@ function updateStudySummary() {
 function updateLearningProgress(tasks, materials, chatCount, quizCount) {
     let progress = 0;
 
-    if (tasks > 0) progress += 25;
-    if (materials > 0) progress += 25;
-    if (chatCount > 0) progress += 25;
-    if (quizCount > 0) progress += 25;
+    if (tasks > 0) {
+        progress += 25;
+    }
+
+    if (materials > 0) {
+        progress += 25;
+    }
+
+    if (chatCount > 0) {
+        progress += 25;
+    }
+
+    if (quizCount > 0) {
+        progress += 25;
+    }
 
     progress = Math.min(progress, 100);
 
@@ -601,8 +638,11 @@ function updateLearningProgress(tasks, materials, chatCount, quizCount) {
 /* ---------------- LOAD PROGRESS ---------------- */
 
 async function loadProgress() {
-    const tasks = await getTaskCount();
-    const materials = await getMaterialCount();
+    const [tasks, materials] = await Promise.all([
+        getTaskCount(),
+        getMaterialCount()
+    ]);
+
     const chatCount = getChatCount();
     const quizCount = getQuizCount();
 
