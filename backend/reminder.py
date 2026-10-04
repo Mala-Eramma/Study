@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -14,6 +15,7 @@ load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+REMINDER_EMAIL = "erammamala5@gmail.com"
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -55,8 +57,8 @@ def check_study_reminders():
                     .first()
                 )
 
-                if not user or not user.email:
-                    print(f"No email address found for task {task.id}")
+                if not user:
+                    print(f"User not found for task {task.id}")
                     continue
 
                 if not resend.api_key:
@@ -80,9 +82,11 @@ def check_study_reminders():
                 </div>
                 """
 
+                print(f"Sending reminder to: {REMINDER_EMAIL}")
+
                 response = resend.Emails.send({
                     "from": FROM_EMAIL,
-                    "to": [user.email],
+                    "to": [REMINDER_EMAIL],
                     "subject": f"Study Reminder: {subject}",
                     "html": email_html
                 })
@@ -92,16 +96,20 @@ def check_study_reminders():
                     db.commit()
 
                     print(
-                        f"Reminder email submitted for {user.email}, "
-                        f"task ID {task.id}"
+                        f"Reminder email accepted by Resend for "
+                        f"{REMINDER_EMAIL}, task ID {task.id}"
                     )
+                    print(f"Resend response: {response}")
                 else:
-                    print(f"Email was not accepted for task {task.id}")
+                    print(
+                        f"Resend did not return a response for task {task.id}"
+                    )
 
             except Exception as error:
                 db.rollback()
                 print(
-                    f"Failed to send reminder for task {task.id}: {error}"
+                    f"Failed to send reminder to {REMINDER_EMAIL} "
+                    f"for task {task.id}: {error}"
                 )
 
     except Exception as error:

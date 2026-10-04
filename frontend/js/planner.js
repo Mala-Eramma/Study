@@ -4,9 +4,14 @@
 // Email reminders are handled by the Python backend scheduler
 // ============================================================
 
-const API_URL = "https://ai-study-assistant-planner-kr9h.onrender.com";
+const API_URL = (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+)
+    ? "http://127.0.0.1:8000"
+    : "https://ai-study-assistant-planner-kr9h.onrender.com";
 const USER_KEY = "user";
-const DATABASE_USER_ID = 2;
+const DATABASE_USER_ID =Number(localStorage.getItem("user_id")) ;
 
 const plannerForm = document.getElementById("plannerForm");
 const plannerList = document.getElementById("taskList");
