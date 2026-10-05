@@ -33,41 +33,61 @@ Student question:
 {question}
 """
 
-        response = None
+        models = [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite"
+        ]
 
-        for attempt in range(3):
-            try:
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=prompt
-                )
-                break
+        for model in models:
+            for attempt in range(2):
+                try:
+                    print(
+                        f"Trying Gemini model: {model}, "
+                        f"attempt: {attempt + 1}"
+                    )
 
-            except Exception as error:
-                error_message = str(error)
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=prompt
+                    )
 
-                is_temporary_error = (
-                    "503" in error_message
-                    or "UNAVAILABLE" in error_message
-                    or "429" in error_message
-                    or "RESOURCE_EXHAUSTED" in error_message
-                )
+                    if response.text:
+                        return response.text.strip()
 
-                if not is_temporary_error or attempt == 2:
-                    raise
+                    print(
+                        f"Gemini returned an empty response from {model}."
+                    )
 
-                delay = 2 ** (attempt + 1)
-                print(
-                    f"Gemini temporarily unavailable. "
-                    f"Retrying in {delay} seconds..."
-                )
-                time.sleep(delay)
+                except Exception as error:
+                    error_message = str(error)
 
-        if response is None or not response.text:
-            print("ERROR: Gemini returned an empty response.")
-            return "Gemini returned an empty response. Please try again."
+                    temporary_error = (
+                        "503" in error_message
+                        or "UNAVAILABLE" in error_message
+                        or "429" in error_message
+                        or "RESOURCE_EXHAUSTED" in error_message
+                    )
 
-        return response.text.strip()
+                    print(
+                        f"Gemini error from {model}: {error_message}"
+                    )
+
+                    if not temporary_error:
+                        raise
+
+                    if attempt == 0:
+                        print(
+                            f"Temporary Gemini error. "
+                            f"Retrying {model}..."
+                        )
+                        time.sleep(2)
+
+            print(
+                f"Model {model} is unavailable. "
+                f"Trying the next Chat model..."
+            )
+
+        return "Unable to generate an AI response right now. Please try again."
 
     except Exception as error:
         print(f"Gemini response error: {error}")
